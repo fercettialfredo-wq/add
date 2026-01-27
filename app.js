@@ -36,30 +36,30 @@ function formatearFecha(fechaRaw) {
 
 const LAYOUT = (content) => `
     <div class="admin-layout" style="display:flex; height:100vh; font-family: 'Inter', 'Segoe UI', sans-serif; background-color:#f3f4f6;">
-        <aside style="width:260px; background-color:#1e293b; color:white; display:flex; flex-direction:column; flex-shrink:0; transition: all 0.3s;">
+        <aside style="width:260px; background-color:#1e293b; color:white; display:flex; flex-direction:column; flex-shrink:0; box-shadow: 2px 0 5px rgba(0,0,0,0.1);">
             <div style="padding:25px 20px; text-align:center; border-bottom:1px solid #334155;">
-                <img src="icons/logo.png" onerror="this.style.display='none'" style="width:50px; margin-bottom:10px;">
+                <img src="icons/logo.png" onerror="this.style.display='none'" style="width:60px; margin-bottom:10px;">
                 <h2 style="margin:0; font-size:1.1rem; font-weight:700; letter-spacing:0.5px;">RAVENS ADMIN</h2>
                 <p style="margin:5px 0 0; font-size:0.75rem; color:#94a3b8; text-transform:uppercase; letter-spacing:1px;">Panel de Control</p>
             </div>
             
             <nav style="flex:1; padding:20px 0; overflow-y:auto;">
-                ${renderMenuItem('DASHBOARD', 'fa-chart-pie', 'Dashboard')}
+                ${renderMenuItem('DASHBOARD', 'icons/incidencias.svg', 'Dashboard')} 
                 
                 <div style="padding:15px 25px 5px; font-size:0.7rem; color:#64748b; font-weight:bold; text-transform:uppercase;">Gestión</div>
-                ${renderMenuItem('LOG_RESIDENTES', 'fa-users', 'Residentes')}
+                ${renderMenuItem('LOG_RESIDENTES', 'icons/residente.svg', 'Residentes')}
                 
                 <div style="padding:15px 25px 5px; font-size:0.7rem; color:#64748b; font-weight:bold; text-transform:uppercase;">Bitácoras</div>
-                ${renderMenuItem('LOG_VISITAS', 'fa-user-clock', 'Visitas')}
-                ${renderMenuItem('LOG_PROVEEDORES', 'fa-truck', 'Proveedores')}
-                ${renderMenuItem('LOG_PAQUETERIA', 'fa-box', 'Paquetería')}
-                ${renderMenuItem('LOG_PERSONAL', 'fa-id-card-alt', 'Personal Servicio')}
-                ${renderMenuItem('LOG_INTERNO', 'fa-user-shield', 'Personal Interno')}
+                ${renderMenuItem('LOG_VISITAS', 'icons/visita.svg', 'Visitas')}
+                ${renderMenuItem('LOG_PROVEEDORES', 'icons/servicio.svg', 'Proveedores')}
+                ${renderMenuItem('LOG_PAQUETERIA', 'icons/incidencias.svg', 'Paquetería')}
+                ${renderMenuItem('LOG_PERSONAL', 'icons/servicio.svg', 'Personal Servicio')}
+                ${renderMenuItem('LOG_INTERNO', 'icons/residente.svg', 'Personal Interno')}
                 
                 <div style="padding:15px 25px 5px; font-size:0.7rem; color:#64748b; font-weight:bold; text-transform:uppercase;">Digital</div>
-                ${renderMenuItem('LOG_QR_RES', 'fa-qrcode', 'QR Residentes')}
-                ${renderMenuItem('LOG_QR_VIS', 'fa-qrcode', 'QR Visitas')}
-                ${renderMenuItem('LOG_EVENTOS', 'fa-calendar-alt', 'Eventos')}
+                ${renderMenuItem('LOG_QR_RES', 'icons/qr.svg', 'QR Residentes')}
+                ${renderMenuItem('LOG_QR_VIS', 'icons/qr.svg', 'QR Visitas')}
+                ${renderMenuItem('LOG_EVENTOS', 'icons/evento.svg', 'Eventos')}
             </nav>
 
             <div style="padding:20px; border-top:1px solid #334155;">
@@ -83,7 +83,7 @@ const LAYOUT = (content) => `
                         </div>
                     </div>
                     <div style="width:42px; height:42px; background:#f1f5f9; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#64748b; border:2px solid #e2e8f0;">
-                        <i class="fas fa-user-tie"></i>
+                        <img src="icons/logo.png" style="width:25px; opacity:0.7;">
                     </div>
                 </div>
             </header>
@@ -95,15 +95,18 @@ const LAYOUT = (content) => `
     </div>
 `;
 
-function renderMenuItem(id, icon, label) {
+function renderMenuItem(id, iconPath, label) {
     const isActive = STATE.activeTab === id;
     const style = isActive 
-        ? 'background:rgba(56, 189, 248, 0.1); color:#38bdf8; border-right:3px solid #38bdf8;' 
-        : 'color:#94a3b8; hover:color:white;';
+        ? 'background:rgba(255, 255, 255, 0.1); color:white; border-right:3px solid #38bdf8;' 
+        : 'color:#94a3b8;';
     
+    // Filtro CSS para hacer los iconos blancos si el fondo es oscuro (opcional, depende de tus SVGs)
+    const iconFilter = isActive ? 'brightness(0) invert(1)' : 'brightness(0.7)';
+
     return `
-        <div onclick="navigate('${id}')" style="padding:12px 25px; cursor:pointer; display:flex; align-items:center; gap:12px; font-size:0.9rem; transition:all 0.2s; ${style}" onmouseover="this.style.color='#f8fafc'" onmouseout="if('${!isActive}') this.style.color='#94a3b8'">
-            <i class="fas ${icon}" style="width:20px; text-align:center;"></i>
+        <div onclick="navigate('${id}')" style="padding:12px 25px; cursor:pointer; display:flex; align-items:center; gap:12px; font-size:0.9rem; transition:all 0.2s; ${style}" onmouseover="this.style.color='white'" onmouseout="if('${!isActive}') this.style.color='#94a3b8'">
+            <img src="${iconPath}" style="width:20px; height:20px; object-fit:contain; filter: ${iconFilter};">
             <span>${label}</span>
         </div>
     `;
@@ -114,23 +117,17 @@ const SCREENS = {
         <div style="height:100vh; display:flex; justify-content:center; align-items:center; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
             <div style="background:white; padding:40px; border-radius:16px; width:100%; max-width:400px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
                 <div style="text-align:center; margin-bottom:30px;">
-                    <img src="icons/logo.png" onerror="this.style.display='none'" style="width:70px; margin-bottom:15px;">
+                    <img src="icons/logo.png" onerror="this.style.display='none'" style="width:80px; margin-bottom:15px;">
                     <h1 style="color:#1e293b; font-size:1.5rem; font-weight:700; margin:0;">Ravens Access</h1>
                     <p style="color:#64748b; margin-top:5px; font-size:0.9rem;">Panel Administrativo</p>
                 </div>
                 <div style="margin-bottom:20px;">
                     <label style="display:block; color:#475569; font-size:0.85rem; font-weight:600; margin-bottom:8px;">Usuario</label>
-                    <div style="position:relative;">
-                        <i class="fas fa-user" style="position:absolute; left:12px; top:12px; color:#94a3b8;"></i>
-                        <input type="text" id="login-user" style="width:100%; padding:10px 10px 10px 35px; border:1px solid #cbd5e1; border-radius:8px; outline:none; font-size:0.95rem; box-sizing:border-box;" placeholder="admin">
-                    </div>
+                    <input type="text" id="login-user" style="width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:8px; outline:none; font-size:0.95rem; box-sizing:border-box;" placeholder="admin">
                 </div>
                 <div style="margin-bottom:30px;">
                     <label style="display:block; color:#475569; font-size:0.85rem; font-weight:600; margin-bottom:8px;">Contraseña</label>
-                    <div style="position:relative;">
-                        <i class="fas fa-lock" style="position:absolute; left:12px; top:12px; color:#94a3b8;"></i>
-                        <input type="password" id="login-pass" style="width:100%; padding:10px 10px 10px 35px; border:1px solid #cbd5e1; border-radius:8px; outline:none; font-size:0.95rem; box-sizing:border-box;" placeholder="••••••">
-                    </div>
+                    <input type="password" id="login-pass" style="width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:8px; outline:none; font-size:0.95rem; box-sizing:border-box;" placeholder="••••••">
                 </div>
                 <button onclick="doLogin()" id="btn-login" style="width:100%; padding:12px; background:#2563eb; color:white; border:none; border-radius:8px; font-weight:600; cursor:pointer; font-size:1rem; transition:background 0.2s;">INICIAR SESIÓN</button>
                 <p id="login-error" style="color:#ef4444; text-align:center; margin-top:15px; font-size:0.85rem; display:none; background:#fee2e2; padding:10px; border-radius:6px;"></p>
@@ -139,10 +136,10 @@ const SCREENS = {
     `,
     'DASHBOARD': `
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:20px; margin-bottom:30px;">
-            ${renderCard('Accesos Hoy', '<span id="stat-access"><i class="fas fa-spinner fa-spin"></i></span>', 'fa-door-open', '#3b82f6', "navigate('LOG_VISITAS')")}
-            ${renderCard('Paquetes', '<span id="stat-packages"><i class="fas fa-spinner fa-spin"></i></span>', 'fa-box', '#f59e0b', "navigate('LOG_PAQUETERIA')")}
-            ${renderCard('Residentes', '<span id="stat-residents">--</span>', 'fa-users', '#10b981', "navigate('LOG_RESIDENTES')")}
-            ${renderCard('Alertas', '0', 'fa-exclamation-triangle', '#ef4444', "#")}
+            ${renderCard('Accesos Hoy', '<span id="stat-access"><i class="fas fa-spinner fa-spin"></i></span>', 'icons/visita.svg', '#3b82f6', "navigate('LOG_VISITAS')")}
+            ${renderCard('Paquetes', '<span id="stat-packages"><i class="fas fa-spinner fa-spin"></i></span>', 'icons/incidencias.svg', '#f59e0b', "navigate('LOG_PAQUETERIA')")}
+            ${renderCard('Residentes', '<span id="stat-residents">--</span>', 'icons/residente.svg', '#10b981', "navigate('LOG_RESIDENTES')")}
+            ${renderCard('Eventos', '0', 'icons/evento.svg', '#ef4444', "navigate('LOG_EVENTOS')")}
         </div>
 
         <div style="display:grid; grid-template-columns: 2fr 1fr; gap:25px; align-items:start;">
@@ -167,15 +164,14 @@ const SCREENS = {
             <div style="padding:20px; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center; gap:15px; flex-wrap:wrap;">
                 <div style="display:flex; gap:10px; flex:1; min-width:300px;">
                     <div style="position:relative; flex:1;">
-                        <i class="fas fa-search" style="position:absolute; left:12px; top:12px; color:#94a3b8;"></i>
-                        <input type="text" id="table-search" placeholder="Buscar..." onkeyup="filterTable()" style="width:100%; padding:10px 10px 10px 35px; border:1px solid #e2e8f0; border-radius:8px; outline:none; box-sizing:border-box;">
+                        <input type="text" id="table-search" placeholder="Buscar en registros..." onkeyup="filterTable()" style="width:100%; padding:10px; border:1px solid #e2e8f0; border-radius:8px; outline:none; box-sizing:border-box;">
                     </div>
-                    <button id="btn-add-entity" style="display:none; padding:10px 20px; background:#10b981; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:5px;" onclick="showAddUserForm()">
-                        <i class="fas fa-plus"></i> Nuevo
+                    <button id="btn-add-entity" style="display:none; padding:10px 20px; background:#10b981; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:600; align-items:center; gap:5px;" onclick="showAddUserForm()">
+                        + Nuevo
                     </button>
                 </div>
-                <button onclick="reloadCurrentTable()" style="padding:10px 15px; background:white; border:1px solid #e2e8f0; border-radius:8px; cursor:pointer; color:#475569; font-weight:600; transition:all 0.2s; display:flex; align-items:center; gap:5px;" onmouseover="this.style.background='#f8fafc'">
-                    <i class="fas fa-sync-alt"></i> <span class="hide-mobile">Actualizar</span>
+                <button onclick="reloadCurrentTable()" style="padding:10px 15px; background:white; border:1px solid #e2e8f0; border-radius:8px; cursor:pointer; color:#475569; font-weight:600; transition:all 0.2s;">
+                    Actualizar
                 </button>
             </div>
             <div class="table-container" style="overflow-x:auto;">
@@ -195,7 +191,7 @@ const SCREENS = {
     `
 };
 
-function renderCard(title, valueHtml, icon, color, action) {
+function renderCard(title, valueHtml, iconPath, color, action) {
     return `
         <div onclick="${action}" style="background:white; padding:20px; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05); border:1px solid #f1f5f9; cursor:pointer; transition:transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 6px -1px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0,0,0,0.05)'">
             <div style="display:flex; justify-content:space-between; align-items:start;">
@@ -203,8 +199,8 @@ function renderCard(title, valueHtml, icon, color, action) {
                     <p style="margin:0 0 5px; color:#64748b; font-size:0.85rem; font-weight:600;">${title}</p>
                     <h3 style="margin:0; color:#1e293b; font-size:1.8rem; font-weight:700;">${valueHtml}</h3>
                 </div>
-                <div style="width:45px; height:45px; border-radius:10px; background:${color}15; color:${color}; display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
-                    <i class="fas ${icon}"></i>
+                <div style="width:45px; height:45px; border-radius:10px; background:${color}15; display:flex; align-items:center; justify-content:center;">
+                    <img src="${iconPath}" style="width:24px; height:24px; object-fit:contain;">
                 </div>
             </div>
         </div>
@@ -254,8 +250,6 @@ async function doLogin() {
     errorMsg.style.display = 'none';
     btn.innerText = "Verificando..."; btn.disabled = true; btn.style.opacity = "0.7";
 
-    // Enviamos 'GARDENIAS' por defecto si el usuario no tiene condominio asignado aún
-    // para que el Proxy sepa qué Logic App usar para validar
     const res = await callBackend('login', { username: user, password: pass });
 
     if (res && res.success) {
@@ -300,7 +294,7 @@ function navigate(screenId) {
     if(btnAdd) btnAdd.style.display = (screenId === 'LOG_RESIDENTES') ? 'flex' : 'none';
 
     if (screenId === 'DASHBOARD') {
-        loadDashboardStats(); // Cargar gráficas y contadores
+        loadDashboardStats(); 
     } else {
         setTimeout(() => loadTableData(screenId), 100);
     }
@@ -322,11 +316,10 @@ function getTitleForScreen(id) {
 }
 
 /* =========================================
-   4. DASHBOARD & GRÁFICAS (NUEVO)
+   4. DASHBOARD & GRÁFICAS
    ========================================= */
 
 async function loadDashboardStats() {
-    // 1. Obtenemos datos crudos de Visitas y Paquetes
     const [resVisitas, resPaquetes] = await Promise.all([
         callBackend('get_history', { tipo_lista: 'VISITA' }),
         callBackend('get_history', { tipo_lista: 'PAQUETERIA_RECEPCION' })
@@ -335,22 +328,15 @@ async function loadDashboardStats() {
     const visitas = resVisitas.data || [];
     const paquetes = resPaquetes.data || [];
 
-    // 2. Calculamos contadores de HOY
     const hoy = new Date().toISOString().split('T')[0];
     const visitasHoy = visitas.filter(v => (v.Fecha || v.Created || '').startsWith(hoy)).length;
-    
-    // Filtramos paquetes con estatus "Pendiente" o "Recibido" (no entregado)
     const paquetesPendientes = paquetes.filter(p => !p.Estatus || p.Estatus.toLowerCase().includes('recibido')).length;
 
-    // 3. Actualizamos DOM
     document.getElementById('stat-access').innerText = visitasHoy;
     document.getElementById('stat-packages').innerText = paquetesPendientes;
-    document.getElementById('stat-residents').innerText = "--"; // Se cargaría con otra llamada si fuera necesario
+    document.getElementById('stat-residents').innerText = "--"; 
 
-    // 4. Renderizamos Lista Reciente
     renderRecentActivity(visitas.slice(0, 5));
-
-    // 5. Renderizamos Gráfica
     renderChart(visitas);
 }
 
@@ -363,8 +349,8 @@ function renderRecentActivity(items) {
     
     const html = items.map(item => `
         <div style="display:flex; gap:15px; padding:12px 0; border-bottom:1px solid #f1f5f9; align-items:center;">
-            <div style="width:35px; height:35px; background:#eff6ff; color:#3b82f6; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                <i class="fas fa-user-clock" style="font-size:0.9rem;"></i>
+            <div style="width:35px; height:35px; background:#eff6ff; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <img src="icons/visita.svg" style="width:18px;">
             </div>
             <div style="flex:1;">
                 <div style="font-weight:600; color:#334155; font-size:0.9rem;">${item.Nombre || 'Desconocido'}</div>
@@ -383,7 +369,6 @@ function renderChart(data) {
     const ctx = document.getElementById('mainChart');
     if (!ctx) return;
 
-    // Agrupar visitas por día de la semana (Lunes, Martes...)
     const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
     const counts = [0, 0, 0, 0, 0, 0, 0];
 
@@ -441,7 +426,6 @@ async function loadTableData(screenId) {
     const res = await callBackend('get_history', { tipo_lista: typeMap[screenId] });
     let data = (res && res.data) ? res.data : [];
 
-    // Caso especial Paquetería: Unir Recepción y Entrega
     if (screenId === 'LOG_PAQUETERIA') {
         const resE = await callBackend('get_history', { tipo_lista: 'PAQUETERIA_ENTREGA' });
         if(resE.data) data = [...data, ...resE.data].sort((a,b) => new Date(b.Fecha || b.Created) - new Date(a.Fecha || a.Created));
@@ -477,23 +461,19 @@ function renderTable(screenId, data) {
             { header: 'Estatus', key: 'Estatus', type: 'status' }
         ];
     } else {
-        // Genérico para otras tablas
         columns = [
             { header: 'Fecha', key: 'Fecha', type: 'date' },
             { header: 'Nombre', key: 'Nombre', bold: true },
-            { header: 'Detalle', key: 'Residente' }, // O Empresa, Asunto...
+            { header: 'Detalle', key: 'Residente' }, 
             { header: 'Estatus', key: 'Estatus', type: 'status' }
         ];
     }
 
-    // Render Headers
     thead.innerHTML = columns.map(col => `<th style="padding:15px;">${col.header}</th>`).join('') + '<th style="padding:15px; text-align:center;">Acciones</th>';
 
-    // Render Body
     tbody.innerHTML = data.map((row, index) => {
         const cells = columns.map(col => {
             let val = '-';
-            
             if (col.format) val = col.format(row);
             else if (row[col.key]) val = row[col.key];
 
@@ -506,7 +486,6 @@ function renderTable(screenId, data) {
         }).join('');
 
         const btnStyle = "border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:0.8rem; font-weight:600; transition:background 0.2s;";
-        
         const actions = (screenId === 'LOG_RESIDENTES')
             ? `<button onclick="deleteUser('${row.ID || row.id}')" style="${btnStyle} background:#fee2e2; color:#dc2626;">Baja</button>`
             : `<button onclick="showDetails(${index})" style="${btnStyle} background:#f1f5f9; color:#475569;">Ver</button>`;
@@ -518,12 +497,10 @@ function renderTable(screenId, data) {
 function getStatusBadge(status) {
     if (!status) return '-';
     const s = status.toString().toLowerCase();
-    let color = '#3b82f6'; let bg = '#eff6ff'; // Azul default
-    
+    let color = '#3b82f6'; let bg = '#eff6ff'; 
     if (s.includes('entrada') || s.includes('aceptado') || s.includes('autorizado')) { color = '#16a34a'; bg = '#dcfce7'; }
     if (s.includes('salida') || s.includes('rechazado') || s.includes('denegado')) { color = '#dc2626'; bg = '#fee2e2'; }
     if (s.includes('pendiente')) { color = '#d97706'; bg = '#fef3c7'; }
-
     return `<span style="color:${color}; background:${bg}; padding:4px 10px; border-radius:12px; font-size:0.75rem; font-weight:600; text-transform:capitalize;">${status}</span>`;
 }
 
@@ -539,7 +516,6 @@ function showAddUserForm() {
                     <h3 style="margin:0; color:#1e293b;">Nuevo Residente</h3>
                     <button onclick="closeModal()" style="background:none; border:none; font-size:1.2rem; color:#94a3b8; cursor:pointer;">&times;</button>
                 </div>
-                
                 <div style="display:grid; gap:15px;">
                     <div>
                         <label style="display:block; font-size:0.85rem; font-weight:600; color:#475569; margin-bottom:5px;">Nombre Completo</label>
@@ -560,7 +536,6 @@ function showAddUserForm() {
                         <input type="text" id="new-phone" placeholder="+52..." style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; outline:none; box-sizing:border-box;">
                     </div>
                 </div>
-
                 <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:25px;">
                     <button onclick="closeModal()" style="padding:10px 20px; background:white; border:1px solid #e2e8f0; border-radius:6px; cursor:pointer; color:#64748b; font-weight:600;">Cancelar</button>
                     <button onclick="saveNewUser()" id="btn-save" style="padding:10px 20px; background:#2563eb; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Guardar Residente</button>
