@@ -7,7 +7,7 @@
    ========================================= */
 const CONFIG = {
     // URL de tu NUEVO Proxy Admin (Python)
-    API_PROXY_URL: 'https://TU-APP-NAME.azurewebsites.net/api/ravens-admin-proxy'
+    API_PROXY_URL: 'https://proxyadmin-cyh0etgyf5c9hch6.mexicocentral-01.azurewebsites.net/api/ravens-admin-proxy'
 };
 
 const STATE = {
