@@ -6,22 +6,22 @@
    1. CONFIGURACIÓN Y ESTADO GLOBAL
    ========================================= */
 const CONFIG = {
-    // URL de tu NUEVO Proxy Admin (Python)
+    // URL de tu Proxy Admin (Python)
     API_PROXY_URL: 'https://proxyadmin-cyh0etgyf5c9hch6.mexicocentral-01.azurewebsites.net/api/ravens-admin-proxy'
 };
 
 const STATE = {
-    session: {
-        isLoggedIn: false,
-        condominioId: null,
-        usuario: null
+    session: JSON.parse(localStorage.getItem('ravensAdmin')) || { 
+        isLoggedIn: false, 
+        condominioId: null, 
+        usuario: null 
     },
     currentData: [],
     activeTab: 'DASHBOARD'
 };
 
 /* =========================================
-   2. MOTOR DE UI
+   2. MOTOR DE UI (LAYOUT & SCREENS)
    ========================================= */
 
 function formatearFecha(fechaRaw) {
@@ -35,55 +35,60 @@ function formatearFecha(fechaRaw) {
 }
 
 const LAYOUT = (content) => `
-    <div class="admin-layout" style="display:flex; height:100vh; font-family: 'Segoe UI', sans-serif; background-color:#f3f4f6;">
-        <aside style="width:250px; background-color:#1e293b; color:white; display:flex; flex-direction:column; flex-shrink:0;">
-            <div style="padding:20px; text-align:center; border-bottom:1px solid #334155;">
-                <img src="icons/logo.png" style="width:60px; margin-bottom:10px;">
-                <h2 style="margin:0; font-size:1.2rem; font-weight:600; letter-spacing:1px;">ADMIN PANEL</h2>
-                <p style="margin:5px 0 0; font-size:0.8rem; color:#94a3b8;">Ravens Access</p>
+    <div class="admin-layout" style="display:flex; height:100vh; font-family: 'Inter', 'Segoe UI', sans-serif; background-color:#f3f4f6;">
+        <aside style="width:260px; background-color:#1e293b; color:white; display:flex; flex-direction:column; flex-shrink:0; transition: all 0.3s;">
+            <div style="padding:25px 20px; text-align:center; border-bottom:1px solid #334155;">
+                <img src="icons/logo.png" onerror="this.style.display='none'" style="width:50px; margin-bottom:10px;">
+                <h2 style="margin:0; font-size:1.1rem; font-weight:700; letter-spacing:0.5px;">RAVENS ADMIN</h2>
+                <p style="margin:5px 0 0; font-size:0.75rem; color:#94a3b8; text-transform:uppercase; letter-spacing:1px;">Panel de Control</p>
             </div>
             
             <nav style="flex:1; padding:20px 0; overflow-y:auto;">
-                ${renderMenuItem('DASHBOARD', 'fa-chart-line', 'Inicio')}
+                ${renderMenuItem('DASHBOARD', 'fa-chart-pie', 'Dashboard')}
                 
-                <div style="padding:10px 25px; font-size:0.75rem; color:#64748b; font-weight:bold; margin-top:10px;">ADMINISTRACIÓN</div>
+                <div style="padding:15px 25px 5px; font-size:0.7rem; color:#64748b; font-weight:bold; text-transform:uppercase;">Gestión</div>
                 ${renderMenuItem('LOG_RESIDENTES', 'fa-users', 'Residentes')}
                 
-                <div style="padding:10px 25px; font-size:0.75rem; color:#64748b; font-weight:bold; margin-top:10px;">BITÁCORAS</div>
-                ${renderMenuItem('LOG_VISITAS', 'fa-user-friends', 'Visitas')}
+                <div style="padding:15px 25px 5px; font-size:0.7rem; color:#64748b; font-weight:bold; text-transform:uppercase;">Bitácoras</div>
+                ${renderMenuItem('LOG_VISITAS', 'fa-user-clock', 'Visitas')}
                 ${renderMenuItem('LOG_PROVEEDORES', 'fa-truck', 'Proveedores')}
-                ${renderMenuItem('LOG_PAQUETERIA', 'fa-box-open', 'Paquetería')}
+                ${renderMenuItem('LOG_PAQUETERIA', 'fa-box', 'Paquetería')}
                 ${renderMenuItem('LOG_PERSONAL', 'fa-id-card-alt', 'Personal Servicio')}
                 ${renderMenuItem('LOG_INTERNO', 'fa-user-shield', 'Personal Interno')}
                 
-                <div style="padding:10px 25px; font-size:0.75rem; color:#64748b; font-weight:bold; margin-top:10px;">ACCESOS DIGITALES</div>
+                <div style="padding:15px 25px 5px; font-size:0.7rem; color:#64748b; font-weight:bold; text-transform:uppercase;">Digital</div>
                 ${renderMenuItem('LOG_QR_RES', 'fa-qrcode', 'QR Residentes')}
                 ${renderMenuItem('LOG_QR_VIS', 'fa-qrcode', 'QR Visitas')}
-                ${renderMenuItem('LOG_EVENTOS', 'fa-calendar-check', 'Eventos')}
+                ${renderMenuItem('LOG_EVENTOS', 'fa-calendar-alt', 'Eventos')}
             </nav>
 
             <div style="padding:20px; border-top:1px solid #334155;">
-                <button onclick="doLogout()" style="width:100%; background:transparent; border:1px solid #ef4444; color:#ef4444; padding:10px; border-radius:6px; cursor:pointer; transition:all 0.2s;">
+                <button onclick="doLogout()" style="width:100%; background:rgba(239, 68, 68, 0.1); border:1px solid #ef4444; color:#ef4444; padding:12px; border-radius:8px; cursor:pointer; font-weight:600; display:flex; align-items:center; justify-content:center; gap:10px; transition:all 0.2s;">
                     <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
                 </button>
             </div>
         </aside>
 
-        <main style="flex:1; overflow-y:auto; position:relative;">
-            <header style="background:white; padding:15px 30px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
-                <h2 id="page-title" style="margin:0; font-size:1.5rem; color:#0f172a;">Dashboard</h2>
-                <div style="display:flex; align-items:center; gap:10px;">
+        <main style="flex:1; overflow-y:auto; position:relative; display:flex; flex-direction:column;">
+            <header style="background:white; padding:15px 30px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:100;">
+                <div>
+                    <h2 id="page-title" style="margin:0; font-size:1.4rem; color:#0f172a;">Dashboard</h2>
+                    <p style="margin:0; font-size:0.85rem; color:#64748b;">Bienvenido de nuevo</p>
+                </div>
+                <div style="display:flex; align-items:center; gap:15px;">
                     <div style="text-align:right;">
-                        <div style="font-weight:bold; font-size:0.9rem;">Admin</div>
-                        <div style="font-size:0.8rem; color:#64748b;">${STATE.session.condominioId || 'Sin Condominio'}</div>
+                        <div style="font-weight:700; font-size:0.9rem; color:#1e293b;">Admin</div>
+                        <div style="font-size:0.75rem; color:#3b82f6; font-weight:600; background:#eff6ff; padding:2px 8px; border-radius:10px; display:inline-block;">
+                            ${STATE.session.condominioId || 'Sin Conexión'}
+                        </div>
                     </div>
-                    <div style="width:40px; height:40px; background:#e2e8f0; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#64748b;">
-                        <i class="fas fa-user"></i>
+                    <div style="width:42px; height:42px; background:#f1f5f9; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#64748b; border:2px solid #e2e8f0;">
+                        <i class="fas fa-user-tie"></i>
                     </div>
                 </div>
             </header>
 
-            <div id="admin-content" style="padding:30px;">
+            <div id="admin-content" style="padding:30px; flex:1;">
                 ${content}
             </div>
         </main>
@@ -91,9 +96,13 @@ const LAYOUT = (content) => `
 `;
 
 function renderMenuItem(id, icon, label) {
-    const active = STATE.activeTab === id ? 'background-color:#334155; color:#38bdf8; border-right:3px solid #38bdf8;' : 'color:#cbd5e1;';
+    const isActive = STATE.activeTab === id;
+    const style = isActive 
+        ? 'background:rgba(56, 189, 248, 0.1); color:#38bdf8; border-right:3px solid #38bdf8;' 
+        : 'color:#94a3b8; hover:color:white;';
+    
     return `
-        <div onclick="navigate('${id}')" style="padding:12px 25px; cursor:pointer; display:flex; align-items:center; gap:15px; transition:background 0.2s; ${active}">
+        <div onclick="navigate('${id}')" style="padding:12px 25px; cursor:pointer; display:flex; align-items:center; gap:12px; font-size:0.9rem; transition:all 0.2s; ${style}" onmouseover="this.style.color='#f8fafc'" onmouseout="if('${!isActive}') this.style.color='#94a3b8'">
             <i class="fas ${icon}" style="width:20px; text-align:center;"></i>
             <span>${label}</span>
         </div>
@@ -102,78 +111,108 @@ function renderMenuItem(id, icon, label) {
 
 const SCREENS = {
     'LOGIN': `
-        <div style="height:100vh; display:flex; justify-content:center; align-items:center; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
-            <div style="background:white; padding:40px; border-radius:16px; width:100%; max-width:400px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);">
+        <div style="height:100vh; display:flex; justify-content:center; align-items:center; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+            <div style="background:white; padding:40px; border-radius:16px; width:100%; max-width:400px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
                 <div style="text-align:center; margin-bottom:30px;">
-                    <img src="icons/logo.png" style="width:80px;">
-                    <h1 style="color:#1e293b; font-size:1.8rem; margin:10px 0 0;">Acceso Administrativo</h1>
-                    <p style="color:#64748b;">Ravens Access Control</p>
+                    <img src="icons/logo.png" onerror="this.style.display='none'" style="width:70px; margin-bottom:15px;">
+                    <h1 style="color:#1e293b; font-size:1.5rem; font-weight:700; margin:0;">Ravens Access</h1>
+                    <p style="color:#64748b; margin-top:5px; font-size:0.9rem;">Panel Administrativo</p>
                 </div>
                 <div style="margin-bottom:20px;">
-                    <label style="display:block; color:#475569; font-weight:600; margin-bottom:5px;">Usuario</label>
-                    <input type="text" id="login-user" style="width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:8px; outline:none;" placeholder="admin">
+                    <label style="display:block; color:#475569; font-size:0.85rem; font-weight:600; margin-bottom:8px;">Usuario</label>
+                    <div style="position:relative;">
+                        <i class="fas fa-user" style="position:absolute; left:12px; top:12px; color:#94a3b8;"></i>
+                        <input type="text" id="login-user" style="width:100%; padding:10px 10px 10px 35px; border:1px solid #cbd5e1; border-radius:8px; outline:none; font-size:0.95rem; box-sizing:border-box;" placeholder="admin">
+                    </div>
                 </div>
                 <div style="margin-bottom:30px;">
-                    <label style="display:block; color:#475569; font-weight:600; margin-bottom:5px;">Contraseña</label>
-                    <input type="password" id="login-pass" style="width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:8px; outline:none;" placeholder="••••••">
+                    <label style="display:block; color:#475569; font-size:0.85rem; font-weight:600; margin-bottom:8px;">Contraseña</label>
+                    <div style="position:relative;">
+                        <i class="fas fa-lock" style="position:absolute; left:12px; top:12px; color:#94a3b8;"></i>
+                        <input type="password" id="login-pass" style="width:100%; padding:10px 10px 10px 35px; border:1px solid #cbd5e1; border-radius:8px; outline:none; font-size:0.95rem; box-sizing:border-box;" placeholder="••••••">
+                    </div>
                 </div>
-                <button onclick="doLogin()" style="width:100%; padding:14px; background:#2563eb; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:1rem;">INGRESAR</button>
-                <p id="login-error" style="color:#ef4444; text-align:center; margin-top:15px; display:none;"></p>
+                <button onclick="doLogin()" id="btn-login" style="width:100%; padding:12px; background:#2563eb; color:white; border:none; border-radius:8px; font-weight:600; cursor:pointer; font-size:1rem; transition:background 0.2s;">INICIAR SESIÓN</button>
+                <p id="login-error" style="color:#ef4444; text-align:center; margin-top:15px; font-size:0.85rem; display:none; background:#fee2e2; padding:10px; border-radius:6px;"></p>
             </div>
         </div>
     `,
     'DASHBOARD': `
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap:20px;">
-            ${renderCard('Gestión Residentes', 'Altas y Bajas', 'fa-users', '#8b5cf6', "navigate('LOG_RESIDENTES')")}
-            ${renderCard('Visitas Recientes', 'Ver actividad', 'fa-user-friends', '#3b82f6', "navigate('LOG_VISITAS')")}
-            ${renderCard('Paquetería', 'Entradas/Salidas', 'fa-box', '#f59e0b', "navigate('LOG_PAQUETERIA')")}
-            ${renderCard('Accesos QR', 'Registro Digital', 'fa-qrcode', '#10b981', "navigate('LOG_QR_RES')")}
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:20px; margin-bottom:30px;">
+            ${renderCard('Accesos Hoy', '<span id="stat-access"><i class="fas fa-spinner fa-spin"></i></span>', 'fa-door-open', '#3b82f6', "navigate('LOG_VISITAS')")}
+            ${renderCard('Paquetes', '<span id="stat-packages"><i class="fas fa-spinner fa-spin"></i></span>', 'fa-box', '#f59e0b', "navigate('LOG_PAQUETERIA')")}
+            ${renderCard('Residentes', '<span id="stat-residents">--</span>', 'fa-users', '#10b981', "navigate('LOG_RESIDENTES')")}
+            ${renderCard('Alertas', '0', 'fa-exclamation-triangle', '#ef4444', "#")}
         </div>
-        <div style="margin-top:40px; background:white; padding:30px; border-radius:12px; text-align:center; color:#64748b;">
-            <i class="fas fa-chart-pie fa-3x" style="margin-bottom:20px; color:#cbd5e1;"></i>
-            <h3>Bienvenido al Panel de Administración</h3>
-            <p>Seleccione una opción para gestionar o auditar el condominio.</p>
+
+        <div style="display:grid; grid-template-columns: 2fr 1fr; gap:25px; align-items:start;">
+            <div style="background:white; padding:25px; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05); border:1px solid #f1f5f9;">
+                <h3 style="margin:0 0 20px; color:#1e293b; font-size:1.1rem;">Flujo de Accesos (Semanal)</h3>
+                <div style="height:300px; width:100%;">
+                    <canvas id="mainChart"></canvas>
+                </div>
+            </div>
+
+            <div style="background:white; padding:25px; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05); border:1px solid #f1f5f9; height:340px; overflow:hidden; display:flex; flex-direction:column;">
+                <h3 style="margin:0 0 15px; color:#1e293b; font-size:1.1rem;">Actividad Reciente</h3>
+                <div id="recent-activity-list" style="flex:1; overflow-y:auto; padding-right:5px;">
+                    <p style="color:#64748b; font-size:0.9rem; text-align:center; margin-top:20px;">Cargando...</p>
+                </div>
+                <button onclick="navigate('LOG_VISITAS')" style="margin-top:15px; width:100%; padding:10px; background:#f8fafc; border:1px solid #e2e8f0; color:#475569; border-radius:6px; cursor:pointer; font-size:0.85rem; font-weight:600;">Ver Todo</button>
+            </div>
         </div>
     `,
     'TABLE_VIEW': `
-        <div style="background:white; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.1); overflow:hidden;">
-            <div style="padding:20px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; gap:15px;">
-                <div style="display:flex; gap:10px; flex:1;">
-                    <input type="text" id="table-search" placeholder="Buscar..." onkeyup="filterTable()" style="padding:10px; border:1px solid #cbd5e1; border-radius:6px; width:300px;">
-                    <button id="btn-add-entity" style="display:none; padding:10px 20px; background:#16a34a; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold;" onclick="showAddUserForm()">+ Nuevo</button>
+        <div style="background:white; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05); border:1px solid #f1f5f9; overflow:hidden;">
+            <div style="padding:20px; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center; gap:15px; flex-wrap:wrap;">
+                <div style="display:flex; gap:10px; flex:1; min-width:300px;">
+                    <div style="position:relative; flex:1;">
+                        <i class="fas fa-search" style="position:absolute; left:12px; top:12px; color:#94a3b8;"></i>
+                        <input type="text" id="table-search" placeholder="Buscar..." onkeyup="filterTable()" style="width:100%; padding:10px 10px 10px 35px; border:1px solid #e2e8f0; border-radius:8px; outline:none; box-sizing:border-box;">
+                    </div>
+                    <button id="btn-add-entity" style="display:none; padding:10px 20px; background:#10b981; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:5px;" onclick="showAddUserForm()">
+                        <i class="fas fa-plus"></i> Nuevo
+                    </button>
                 </div>
-                <button onclick="reloadCurrentTable()" style="padding:10px 20px; background:#f1f5f9; border:none; border-radius:6px; cursor:pointer; color:#475569;"><i class="fas fa-sync-alt"></i> Actualizar</button>
+                <button onclick="reloadCurrentTable()" style="padding:10px 15px; background:white; border:1px solid #e2e8f0; border-radius:8px; cursor:pointer; color:#475569; font-weight:600; transition:all 0.2s; display:flex; align-items:center; gap:5px;" onmouseover="this.style.background='#f8fafc'">
+                    <i class="fas fa-sync-alt"></i> <span class="hide-mobile">Actualizar</span>
+                </button>
             </div>
             <div class="table-container" style="overflow-x:auto;">
-                <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
-                    <thead style="background:#f8fafc; color:#475569; text-align:left;">
+                <table style="width:100%; border-collapse:collapse; font-size:0.9rem; min-width:800px;">
+                    <thead style="background:#f8fafc; color:#64748b; text-align:left; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">
                         <tr id="table-headers"></tr>
                     </thead>
                     <tbody id="table-body">
-                        <tr><td colspan="10" style="padding:30px; text-align:center;">Cargando...</td></tr>
+                        <tr><td colspan="10" style="padding:40px; text-align:center; color:#94a3b8;">Cargando datos...</td></tr>
                     </tbody>
                 </table>
+            </div>
+            <div style="padding:15px 20px; border-top:1px solid #f1f5f9; color:#94a3b8; font-size:0.8rem; text-align:right;">
+                Mostrando últimos 50 registros
             </div>
         </div>
     `
 };
 
-function renderCard(title, subtitle, icon, color, action) {
+function renderCard(title, valueHtml, icon, color, action) {
     return `
-        <div onclick="${action}" style="background:white; padding:25px; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.1); cursor:pointer; transition:transform 0.2s; display:flex; align-items:center; gap:20px;">
-            <div style="width:60px; height:60px; border-radius:12px; background:${color}20; color:${color}; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">
-                <i class="fas ${icon}"></i>
-            </div>
-            <div>
-                <h3 style="margin:0; color:#1e293b; font-size:1.1rem;">${title}</h3>
-                <p style="margin:5px 0 0; color:#64748b; font-size:0.9rem;">${subtitle}</p>
+        <div onclick="${action}" style="background:white; padding:20px; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05); border:1px solid #f1f5f9; cursor:pointer; transition:transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 6px -1px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0,0,0,0.05)'">
+            <div style="display:flex; justify-content:space-between; align-items:start;">
+                <div>
+                    <p style="margin:0 0 5px; color:#64748b; font-size:0.85rem; font-weight:600;">${title}</p>
+                    <h3 style="margin:0; color:#1e293b; font-size:1.8rem; font-weight:700;">${valueHtml}</h3>
+                </div>
+                <div style="width:45px; height:45px; border-radius:10px; background:${color}15; color:${color}; display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
+                    <i class="fas ${icon}"></i>
+                </div>
             </div>
         </div>
     `;
 }
 
 /* =========================================
-   3. LÓGICA Y DATOS
+   3. LÓGICA Y CONEXIÓN (BACKEND)
    ========================================= */
 
 async function callBackend(action, extraData = {}) {
@@ -200,7 +239,7 @@ async function callBackend(action, extraData = {}) {
 
     } catch (error) {
         console.error("Backend Error:", error);
-        return { success: false, message: error.message };
+        return { success: false, message: "Error de conexión con el servidor" };
     }
 }
 
@@ -208,29 +247,26 @@ async function doLogin() {
     const user = document.getElementById('login-user').value;
     const pass = document.getElementById('login-pass').value;
     const errorMsg = document.getElementById('login-error');
+    const btn = document.getElementById('btn-login');
+
     if(!user || !pass) return;
     
     errorMsg.style.display = 'none';
-    const btn = document.querySelector('button');
-    btn.innerText = "Verificando..."; btn.disabled = true;
+    btn.innerText = "Verificando..."; btn.disabled = true; btn.style.opacity = "0.7";
 
+    // Enviamos 'GARDENIAS' por defecto si el usuario no tiene condominio asignado aún
+    // para que el Proxy sepa qué Logic App usar para validar
     const res = await callBackend('login', { username: user, password: pass });
 
     if (res && res.success) {
-        const condId = res.condominioId || res.condominio || (res.data && res.data.condominioId);
-        if(!condId) {
-             errorMsg.innerText = "Error: Sin condominio asignado.";
-             errorMsg.style.display = 'block';
-             btn.disabled = false; btn.innerText = "INGRESAR";
-             return;
-        }
+        const condId = res.condominioId || res.condominio || 'GARDENIAS'; // Fallback
         STATE.session = { isLoggedIn: true, condominioId: condId, usuario: user };
         localStorage.setItem('ravensAdmin', JSON.stringify(STATE.session));
         navigate('DASHBOARD');
     } else {
-        errorMsg.innerText = res.message || "Credenciales inválidas";
+        errorMsg.innerText = res.message || "Usuario o contraseña incorrectos";
         errorMsg.style.display = 'block';
-        btn.disabled = false; btn.innerText = "INGRESAR";
+        btn.disabled = false; btn.innerText = "INICIAR SESIÓN"; btn.style.opacity = "1";
     }
 }
 
@@ -254,38 +290,136 @@ function navigate(screenId) {
     STATE.activeTab = screenId;
     if(screenId === 'LOGIN') { document.getElementById('viewport').innerHTML = SCREENS['LOGIN']; return; }
 
-    let innerContent = (screenId === 'DASHBOARD') ? SCREENS['DASHBOARD'] : SCREENS['TABLE_VIEW'];
+    const innerContent = (screenId === 'DASHBOARD') ? SCREENS['DASHBOARD'] : SCREENS['TABLE_VIEW'];
     document.getElementById('viewport').innerHTML = LAYOUT(innerContent);
     
     const titleEl = document.getElementById('page-title');
     if(titleEl) titleEl.innerText = getTitleForScreen(screenId);
 
-    // Mostrar botón "Nuevo" si estamos en Residentes
     const btnAdd = document.getElementById('btn-add-entity');
-    if(btnAdd) btnAdd.style.display = (screenId === 'LOG_RESIDENTES') ? 'block' : 'none';
+    if(btnAdd) btnAdd.style.display = (screenId === 'LOG_RESIDENTES') ? 'flex' : 'none';
 
-    if (screenId !== 'DASHBOARD') {
+    if (screenId === 'DASHBOARD') {
+        loadDashboardStats(); // Cargar gráficas y contadores
+    } else {
         setTimeout(() => loadTableData(screenId), 100);
     }
 }
 
 function getTitleForScreen(id) {
     const map = {
-        'LOG_RESIDENTES': 'Gestión de Residentes',
+        'LOG_RESIDENTES': 'Directorio de Residentes',
         'LOG_VISITAS': 'Historial de Visitas',
         'LOG_PROVEEDORES': 'Bitácora de Proveedores',
-        'LOG_PAQUETERIA': 'Entradas y Salidas de Paquetería',
+        'LOG_PAQUETERIA': 'Gestión de Paquetería',
         'LOG_PERSONAL': 'Personal de Servicio',
-        'LOG_INTERNO': 'Bitácora Personal Interno',
-        'LOG_QR_RES': 'Accesos QR Residentes',
-        'LOG_QR_VIS': 'Accesos QR Visitas',
-        'LOG_EVENTOS': 'Accesos a Eventos'
+        'LOG_INTERNO': 'Personal Interno',
+        'LOG_QR_RES': 'Accesos QR (Residentes)',
+        'LOG_QR_VIS': 'Accesos QR (Visitas)',
+        'LOG_EVENTOS': 'Eventos y Amenidades'
     };
-    return map[id] || 'Registros';
+    return map[id] || 'Dashboard';
 }
 
 /* =========================================
-   4. CARGA Y RENDER DE TABLAS
+   4. DASHBOARD & GRÁFICAS (NUEVO)
+   ========================================= */
+
+async function loadDashboardStats() {
+    // 1. Obtenemos datos crudos de Visitas y Paquetes
+    const [resVisitas, resPaquetes] = await Promise.all([
+        callBackend('get_history', { tipo_lista: 'VISITA' }),
+        callBackend('get_history', { tipo_lista: 'PAQUETERIA_RECEPCION' })
+    ]);
+
+    const visitas = resVisitas.data || [];
+    const paquetes = resPaquetes.data || [];
+
+    // 2. Calculamos contadores de HOY
+    const hoy = new Date().toISOString().split('T')[0];
+    const visitasHoy = visitas.filter(v => (v.Fecha || v.Created || '').startsWith(hoy)).length;
+    
+    // Filtramos paquetes con estatus "Pendiente" o "Recibido" (no entregado)
+    const paquetesPendientes = paquetes.filter(p => !p.Estatus || p.Estatus.toLowerCase().includes('recibido')).length;
+
+    // 3. Actualizamos DOM
+    document.getElementById('stat-access').innerText = visitasHoy;
+    document.getElementById('stat-packages').innerText = paquetesPendientes;
+    document.getElementById('stat-residents').innerText = "--"; // Se cargaría con otra llamada si fuera necesario
+
+    // 4. Renderizamos Lista Reciente
+    renderRecentActivity(visitas.slice(0, 5));
+
+    // 5. Renderizamos Gráfica
+    renderChart(visitas);
+}
+
+function renderRecentActivity(items) {
+    const container = document.getElementById('recent-activity-list');
+    if (!items.length) {
+        container.innerHTML = '<p style="text-align:center; color:#94a3b8; margin-top:20px;">Sin actividad reciente.</p>';
+        return;
+    }
+    
+    const html = items.map(item => `
+        <div style="display:flex; gap:15px; padding:12px 0; border-bottom:1px solid #f1f5f9; align-items:center;">
+            <div style="width:35px; height:35px; background:#eff6ff; color:#3b82f6; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <i class="fas fa-user-clock" style="font-size:0.9rem;"></i>
+            </div>
+            <div style="flex:1;">
+                <div style="font-weight:600; color:#334155; font-size:0.9rem;">${item.Nombre || 'Desconocido'}</div>
+                <div style="font-size:0.8rem; color:#94a3b8;">${item.Torre || ''} ${item.Departamento || ''} - ${item.Residente || ''}</div>
+            </div>
+            <div style="font-size:0.8rem; color:#64748b; font-weight:500;">
+                ${formatearFecha(item.Fecha).split(',')[1] || ''}
+            </div>
+        </div>
+    `).join('');
+    
+    container.innerHTML = html;
+}
+
+function renderChart(data) {
+    const ctx = document.getElementById('mainChart');
+    if (!ctx) return;
+
+    // Agrupar visitas por día de la semana (Lunes, Martes...)
+    const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    const counts = [0, 0, 0, 0, 0, 0, 0];
+
+    data.forEach(item => {
+        const d = new Date(item.Fecha || item.Created);
+        if (!isNaN(d)) {
+            counts[d.getDay()]++;
+        }
+    });
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: days,
+            datasets: [{
+                label: 'Accesos',
+                data: counts,
+                backgroundColor: '#3b82f6',
+                borderRadius: 4,
+                barThickness: 20
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { borderDash: [2, 4], color: '#f1f5f9' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+}
+
+/* =========================================
+   5. TABLAS Y DATOS (CRUD)
    ========================================= */
 
 async function loadTableData(screenId) {
@@ -302,11 +436,12 @@ async function loadTableData(screenId) {
     };
 
     const tbody = document.getElementById('table-body');
-    if(tbody) tbody.innerHTML = '<tr><td colspan="10" style="padding:30px; text-align:center;"><i class="fas fa-spinner fa-spin"></i> Cargando...</td></tr>';
+    if(tbody) tbody.innerHTML = '<tr><td colspan="10" style="padding:40px; text-align:center; color:#64748b;"><i class="fas fa-spinner fa-spin"></i> Cargando registros...</td></tr>';
 
     const res = await callBackend('get_history', { tipo_lista: typeMap[screenId] });
     let data = (res && res.data) ? res.data : [];
 
+    // Caso especial Paquetería: Unir Recepción y Entrega
     if (screenId === 'LOG_PAQUETERIA') {
         const resE = await callBackend('get_history', { tipo_lista: 'PAQUETERIA_ENTREGA' });
         if(resE.data) data = [...data, ...resE.data].sort((a,b) => new Date(b.Fecha || b.Created) - new Date(a.Fecha || a.Created));
@@ -319,93 +454,161 @@ async function loadTableData(screenId) {
 function renderTable(screenId, data) {
     const thead = document.getElementById('table-headers');
     const tbody = document.getElementById('table-body');
+    
     if(!data || data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" style="padding:30px; text-align:center;">Sin registros.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" style="padding:40px; text-align:center; color:#94a3b8;">No se encontraron registros.</td></tr>';
         return;
     }
 
     let columns = [];
     if (screenId === 'LOG_RESIDENTES') {
         columns = [
-            { header: 'Nombre', key: 'Nombre' },
-            { header: 'Unidad', key: 'Unidad', format: (row) => `${row.Torre || ''} ${row.Departamento || row.Unidad || ''}` },
-            { header: 'Teléfono', key: 'Telefono' },
-            { header: 'Estatus', key: 'Activo', format: (row) => row.Activo ? '<span style="color:green">Activo</span>' : '<span style="color:red">Inactivo</span>' }
+            { header: 'Nombre', key: 'Nombre', bold: true },
+            { header: 'Ubicación', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` },
+            { header: 'Contacto', key: 'Telefono' },
+            { header: 'Estado', key: 'Activo', type: 'bool' }
         ];
     } else if (screenId === 'LOG_VISITAS') {
         columns = [
             { header: 'Fecha', key: 'Fecha', type: 'date' },
-            { header: 'Visitante', key: 'Nombre' },
+            { header: 'Visitante', key: 'Nombre', bold: true },
             { header: 'Residente', key: 'Residente' },
-            { header: 'Destino', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` },
+            { header: 'Destino', format: (row) => `${row.Torre || ''} - ${row.Departamento || ''}` },
             { header: 'Estatus', key: 'Estatus', type: 'status' }
         ];
     } else {
+        // Genérico para otras tablas
         columns = [
             { header: 'Fecha', key: 'Fecha', type: 'date' },
-            { header: 'Nombre', key: 'Nombre' },
-            { header: 'Detalle', key: 'Residente' },
+            { header: 'Nombre', key: 'Nombre', bold: true },
+            { header: 'Detalle', key: 'Residente' }, // O Empresa, Asunto...
             { header: 'Estatus', key: 'Estatus', type: 'status' }
         ];
     }
 
-    thead.innerHTML = columns.map(col => `<th style="padding:15px; border-bottom:1px solid #e2e8f0;">${col.header}</th>`).join('') + '<th style="padding:15px; border-bottom:1px solid #e2e8f0; text-align:center;">Acción</th>';
+    // Render Headers
+    thead.innerHTML = columns.map(col => `<th style="padding:15px;">${col.header}</th>`).join('') + '<th style="padding:15px; text-align:center;">Acciones</th>';
 
+    // Render Body
     tbody.innerHTML = data.map((row, index) => {
         const cells = columns.map(col => {
-            let val = row[col.key] || '-';
+            let val = '-';
+            
             if (col.format) val = col.format(row);
-            else if (col.type === 'date') val = formatearFecha(row[col.key] || row.Created);
-            else if (col.type === 'status') val = getStatusBadge(row[col.key]);
-            return `<td style="padding:15px; border-bottom:1px solid #f1f5f9;">${val}</td>`;
+            else if (row[col.key]) val = row[col.key];
+
+            if (col.type === 'date') val = `<span style="color:#64748b; font-size:0.85rem;">${formatearFecha(val)}</span>`;
+            if (col.type === 'status') val = getStatusBadge(val);
+            if (col.type === 'bool') val = row.Activo ? '<span style="color:#16a34a; background:#dcfce7; padding:2px 8px; border-radius:10px; font-size:0.75rem; font-weight:600;">Activo</span>' : '<span style="color:#94a3b8; background:#f1f5f9; padding:2px 8px; border-radius:10px; font-size:0.75rem;">Inactivo</span>';
+            if (col.bold) val = `<span style="font-weight:600; color:#334155;">${val}</span>`;
+
+            return `<td style="padding:15px; border-bottom:1px solid #f8fafc;">${val}</td>`;
         }).join('');
 
-        const actionBtn = (screenId === 'LOG_RESIDENTES') 
-            ? `<button onclick="deleteUser('${row.ID || row.id}')" style="background:#fee2e2; color:#dc2626; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Baja</button>`
-            : `<button onclick="showAdminDetails(${index})" style="background:#e0f2fe; color:#0284c7; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Ver</button>`;
+        const btnStyle = "border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:0.8rem; font-weight:600; transition:background 0.2s;";
+        
+        const actions = (screenId === 'LOG_RESIDENTES')
+            ? `<button onclick="deleteUser('${row.ID || row.id}')" style="${btnStyle} background:#fee2e2; color:#dc2626;">Baja</button>`
+            : `<button onclick="showDetails(${index})" style="${btnStyle} background:#f1f5f9; color:#475569;">Ver</button>`;
 
-        return `<tr>${cells}<td style="padding:15px; border-bottom:1px solid #f1f5f9; text-align:center;">${actionBtn}</td></tr>`;
+        return `<tr style="transition:background 0.1s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">${cells}<td style="padding:15px; border-bottom:1px solid #f8fafc; text-align:center;">${actions}</td></tr>`;
     }).join('');
 }
 
 function getStatusBadge(status) {
     if (!status) return '-';
     const s = status.toString().toLowerCase();
-    let color = '#3b82f6'; let bg = '#eff6ff';
-    if (['aceptado', 'entrada', 'autorizado'].includes(s)) { color = '#16a34a'; bg = '#dcfce7'; }
-    if (['rechazado', 'salida'].includes(s)) { color = '#dc2626'; bg = '#fee2e2'; }
-    return `<span style="padding:4px 8px; border-radius:12px; font-size:0.75rem; background:${bg}; color:${color}; font-weight:600;">${status}</span>`;
+    let color = '#3b82f6'; let bg = '#eff6ff'; // Azul default
+    
+    if (s.includes('entrada') || s.includes('aceptado') || s.includes('autorizado')) { color = '#16a34a'; bg = '#dcfce7'; }
+    if (s.includes('salida') || s.includes('rechazado') || s.includes('denegado')) { color = '#dc2626'; bg = '#fee2e2'; }
+    if (s.includes('pendiente')) { color = '#d97706'; bg = '#fef3c7'; }
+
+    return `<span style="color:${color}; background:${bg}; padding:4px 10px; border-radius:12px; font-size:0.75rem; font-weight:600; text-transform:capitalize;">${status}</span>`;
 }
 
 /* =========================================
-   5. ALTAS Y BAJAS (MODALS)
+   6. MODALES Y FORMULARIOS
    ========================================= */
 
 function showAddUserForm() {
-    const modal = `
-        <div id="admin-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:9999;">
-            <div style="background:white; width:90%; max-width:450px; border-radius:12px; padding:25px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);">
-                <h3 style="margin:0 0 20px; color:#1e293b;">Nuevo Residente</h3>
-                <label style="display:block; font-size:0.85rem; font-weight:600;">Nombre Completo</label>
-                <input type="text" id="new-name" style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #cbd5e1; border-radius:6px;">
+    const modalHtml = `
+        <div id="modal-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.6); display:flex; justify-content:center; align-items:center; z-index:9999; backdrop-filter:blur(2px);">
+            <div style="background:white; width:90%; max-width:450px; border-radius:12px; padding:30px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); animation: slideIn 0.2s ease-out;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h3 style="margin:0; color:#1e293b;">Nuevo Residente</h3>
+                    <button onclick="closeModal()" style="background:none; border:none; font-size:1.2rem; color:#94a3b8; cursor:pointer;">&times;</button>
+                </div>
                 
-                <label style="display:block; font-size:0.85rem; font-weight:600;">Torre / Casa</label>
-                <input type="text" id="new-torre" style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #cbd5e1; border-radius:6px;">
-                
-                <label style="display:block; font-size:0.85rem; font-weight:600;">Departamento / Núm.</label>
-                <input type="text" id="new-depto" style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #cbd5e1; border-radius:6px;">
-                
-                <label style="display:block; font-size:0.85rem; font-weight:600;">WhatsApp</label>
-                <input type="text" id="new-phone" placeholder="+52..." style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #cbd5e1; border-radius:6px;">
-                
-                <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:10px;">
-                    <button onclick="document.getElementById('admin-modal').remove()" style="padding:10px 20px; background:#f1f5f9; border:none; border-radius:6px; cursor:pointer;">Cancelar</button>
-                    <button onclick="saveNewUser()" id="btn-save" style="padding:10px 20px; background:#2563eb; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold;">GUARDAR</button>
+                <div style="display:grid; gap:15px;">
+                    <div>
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:#475569; margin-bottom:5px;">Nombre Completo</label>
+                        <input type="text" id="new-name" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; outline:none; box-sizing:border-box;">
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                        <div>
+                            <label style="display:block; font-size:0.85rem; font-weight:600; color:#475569; margin-bottom:5px;">Torre</label>
+                            <input type="text" id="new-torre" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; outline:none; box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:0.85rem; font-weight:600; color:#475569; margin-bottom:5px;">Depto</label>
+                            <input type="text" id="new-depto" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; outline:none; box-sizing:border-box;">
+                        </div>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:#475569; margin-bottom:5px;">Teléfono</label>
+                        <input type="text" id="new-phone" placeholder="+52..." style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; outline:none; box-sizing:border-box;">
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:25px;">
+                    <button onclick="closeModal()" style="padding:10px 20px; background:white; border:1px solid #e2e8f0; border-radius:6px; cursor:pointer; color:#64748b; font-weight:600;">Cancelar</button>
+                    <button onclick="saveNewUser()" id="btn-save" style="padding:10px 20px; background:#2563eb; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Guardar Residente</button>
+                </div>
+            </div>
+        </div>
+        <style>@keyframes slideIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }</style>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function showDetails(index) {
+    const item = STATE.currentData[index];
+    if(!item) return;
+    
+    let listHtml = '';
+    const ignore = ['odata.type', 'ID', 'Id', 'Foto', 'FotoBase64', 'FirmaBase64'];
+
+    for (const [key, value] of Object.entries(item)) {
+        if (!ignore.includes(key) && value) {
+            listHtml += `
+                <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #f1f5f9;">
+                    <span style="color:#64748b; font-size:0.9rem;">${key}</span>
+                    <span style="color:#1e293b; font-weight:500; font-size:0.9rem; text-align:right; max-width:60%;">${value}</span>
+                </div>`;
+        }
+    }
+
+    const modalHtml = `
+        <div id="modal-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.6); display:flex; justify-content:center; align-items:center; z-index:9999; backdrop-filter:blur(2px);">
+            <div style="background:white; width:90%; max-width:500px; border-radius:12px; display:flex; flex-direction:column; max-height:85vh; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
+                <div style="padding:20px; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center;">
+                    <h3 style="margin:0; color:#1e293b;">Detalles del Registro</h3>
+                    <button onclick="closeModal()" style="background:none; border:none; font-size:1.5rem; color:#94a3b8; cursor:pointer;">&times;</button>
+                </div>
+                <div style="padding:20px; overflow-y:auto;">${listHtml}</div>
+                <div style="padding:20px; border-top:1px solid #f1f5f9; text-align:right;">
+                    <button onclick="closeModal()" style="padding:10px 20px; background:#1e293b; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Cerrar</button>
                 </div>
             </div>
         </div>
     `;
-    document.body.insertAdjacentHTML('beforeend', modal);
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function closeModal() {
+    const el = document.getElementById('modal-overlay');
+    if(el) el.remove();
 }
 
 async function saveNewUser() {
@@ -417,73 +620,49 @@ async function saveNewUser() {
         activo: true
     };
 
-    if(!data.nombre || !data.departamento) return alert("Nombre y Depto son obligatorios");
+    if(!data.nombre || !data.departamento) return alert("Nombre y Departamento son obligatorios");
 
     const btn = document.getElementById('btn-save');
     btn.innerText = "Guardando..."; btn.disabled = true;
 
     const res = await callBackend('add_user', { data });
+    
     if(res.success) {
-        alert("Residente registrado");
-        document.getElementById('admin-modal').remove();
+        closeModal();
         loadTableData('LOG_RESIDENTES');
     } else {
         alert("Error: " + res.message);
-        btn.innerText = "GUARDAR"; btn.disabled = false;
+        btn.innerText = "Guardar Residente"; btn.disabled = false;
     }
 }
 
 async function deleteUser(id) {
-    if(!confirm("¿Dar de baja a este residente?")) return;
+    if(!confirm("¿Estás seguro de eliminar este usuario? Esta acción no se puede deshacer.")) return;
     const res = await callBackend('delete_user', { data: { id } });
     if(res.success) {
-        alert("Baja procesada correctamente");
         loadTableData('LOG_RESIDENTES');
+    } else {
+        alert("No se pudo eliminar: " + res.message);
     }
 }
 
 /* =========================================
-   6. OTROS
+   7. UTILIDADES
    ========================================= */
 
 function filterTable() {
     const term = document.getElementById('table-search').value.toLowerCase();
-    document.querySelectorAll('#table-body tr').forEach(row => {
-        row.style.display = row.innerText.toLowerCase().includes(term) ? '' : 'none';
+    const rows = document.querySelectorAll('#table-body tr');
+    rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(term) ? '' : 'none';
     });
 }
 
 function reloadCurrentTable() {
-    if(STATE.activeTab && STATE.activeTab.startsWith('LOG_')) loadTableData(STATE.activeTab);
+    if(STATE.activeTab.startsWith('LOG_')) loadTableData(STATE.activeTab);
+    if(STATE.activeTab === 'DASHBOARD') loadDashboardStats();
 }
 
-function showAdminDetails(index) {
-    const item = STATE.currentData[index];
-    if(!item) return;
-    let contentHtml = '';
-    const ignore = ['odata.type', 'ID', 'Id', 'Foto', 'FotoBase64', 'FirmaBase64'];
-
-    for (const [key, value] of Object.entries(item)) {
-        if (!ignore.includes(key) && value) {
-            contentHtml += `<div style="padding:8px 0; border-bottom:1px solid #eee;"><strong style="color:#64748b;">${key}:</strong> ${value}</div>`;
-        }
-    }
-
-    const modal = `
-        <div id="admin-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:9999;">
-            <div style="background:white; width:90%; max-width:500px; border-radius:12px; display:flex; flex-direction:column; max-height:85vh;">
-                <div style="padding:15px 20px; border-bottom:1px solid #eee; display:flex; justify-content:space-between;">
-                    <h3>Detalles</h3>
-                    <button onclick="document.getElementById('admin-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
-                </div>
-                <div style="padding:20px; overflow-y:auto;">${contentHtml}</div>
-                <div style="padding:15px; border-top:1px solid #eee; text-align:right;">
-                    <button onclick="document.getElementById('admin-modal').remove()" style="padding:8px 15px; background:#1e293b; color:white; border:none; border-radius:6px; cursor:pointer;">Cerrar</button>
-                </div>
-            </div>
-        </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', modal);
-}
-
+// INICIO
 window.onload = checkSession;
