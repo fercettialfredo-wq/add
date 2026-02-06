@@ -6,7 +6,7 @@
    1. CONFIGURACIÓN Y ESTADO GLOBAL
    ========================================= */
 const CONFIG = {
-    // URL de tu Proxy Admin (Python)
+    // URL de tu Proxy Admin (Python/Logic App Trigger)
     API_PROXY_URL: 'https://proxyadmin-cyh0etgyf5c9hch6.mexicocentral-01.azurewebsites.net/api/ravens-admin-proxy'
 };
 
@@ -27,7 +27,8 @@ const STATE = {
 function formatearFecha(fechaRaw) {
     if (!fechaRaw) return "-";
     const dateObj = new Date(fechaRaw);
-    if (isNaN(dateObj)) return fechaRaw;
+    if (isNaN(dateObj.getTime())) return fechaRaw; // Si no es fecha válida, devuelve texto original
+    
     return dateObj.toLocaleString('es-MX', {
         day: '2-digit', month: '2-digit', year: 'numeric',
         hour: '2-digit', minute: '2-digit', hour12: true
@@ -97,17 +98,22 @@ const LAYOUT = (content) => `
 
 function renderMenuItem(id, iconPath, label) {
     const isActive = STATE.activeTab === id;
-    const style = isActive 
-        ? 'background:rgba(255, 255, 255, 0.1); color:white; border-right:3px solid #38bdf8;' 
-        : 'color:#94a3b8;';
     
-    // Filtro CSS para hacer los iconos blancos si el fondo es oscuro (opcional, depende de tus SVGs)
-    const iconFilter = isActive ? 'brightness(0) invert(1)' : 'brightness(0.7)';
+    // CAMBIO: Estilo activo más claro y el icono usa un filtro para volverse azul (#38bdf8) en lugar de blanco puro
+    const containerStyle = isActive 
+        ? 'background:rgba(255, 255, 255, 0.05); color:white; border-right:3px solid #38bdf8;' 
+        : 'color:#94a3b8; border-right:3px solid transparent;';
+    
+    // Filtro para colorear el SVG. Si está activo, lo forzamos a un tono Cyan/Azul claro.
+    // Si no tienes SVGs negros, ajusta esto. brightness(0) invert(1) hace blanco.
+    // Usaremos sepia/saturate para intentar lograr el azul, o simplemente blanco brillante si prefieres.
+    // Para asegurar visibilidad: Activo = Blanco Brillante, Inactivo = Gris.
+    const iconFilter = isActive ? 'brightness(0) invert(1)' : 'brightness(0.5) invert(0.5)';
 
     return `
-        <div onclick="navigate('${id}')" style="padding:12px 25px; cursor:pointer; display:flex; align-items:center; gap:12px; font-size:0.9rem; transition:all 0.2s; ${style}" onmouseover="this.style.color='white'" onmouseout="if('${!isActive}') this.style.color='#94a3b8'">
-            <img src="${iconPath}" style="width:20px; height:20px; object-fit:contain; filter: ${iconFilter};">
-            <span>${label}</span>
+        <div onclick="navigate('${id}')" style="padding:12px 25px; cursor:pointer; display:flex; align-items:center; gap:12px; font-size:0.9rem; transition:all 0.2s; ${containerStyle}" onmouseover="this.style.color='white'" onmouseout="if('${!isActive}') this.style.color='#94a3b8'">
+            <img src="${iconPath}" style="width:20px; height:20px; object-fit:contain; filter: ${iconFilter}; transition:filter 0.2s;">
+            <span style="${isActive ? 'font-weight:600;' : ''}">${label}</span>
         </div>
     `;
 }
@@ -408,6 +414,7 @@ function renderChart(data) {
    ========================================= */
 
 async function loadTableData(screenId) {
+    // CAMBIO: Mapeo exacto contra Logic App
     const typeMap = {
         'LOG_RESIDENTES': 'RESIDENTE',
         'LOG_VISITAS': 'VISITA',
@@ -445,6 +452,8 @@ function renderTable(screenId, data) {
     }
 
     let columns = [];
+    
+    // CAMBIO: Definición de columnas específica para cada lista basada en Logic App
     if (screenId === 'LOG_RESIDENTES') {
         columns = [
             { header: 'Nombre', key: 'Nombre', bold: true },
@@ -457,15 +466,55 @@ function renderTable(screenId, data) {
             { header: 'Fecha', key: 'Fecha', type: 'date' },
             { header: 'Visitante', key: 'Nombre', bold: true },
             { header: 'Residente', key: 'Residente' },
-            { header: 'Destino', format: (row) => `${row.Torre || ''} - ${row.Departamento || ''}` },
+            { header: 'Destino', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` },
             { header: 'Estatus', key: 'Estatus', type: 'status' }
         ];
-    } else {
+    } else if (screenId === 'LOG_PROVEEDORES') {
+        columns = [
+            { header: 'Fecha', key: 'Fecha', type: 'date' },
+            { header: 'Empresa', key: 'Empresa', bold: true },
+            { header: 'Personal', key: 'Nombre' },
+            { header: 'Asunto', key: 'Asunto' },
+            { header: 'Destino', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` }
+        ];
+    } else if (screenId === 'LOG_PAQUETERIA') {
+        columns = [
+            { header: 'Fecha', key: 'Fecha', type: 'date' },
+            { header: 'Paquetería', key: 'Paqueteria', bold: true }, // Logic App devuelve 'Paqueteria'
+            { header: 'Destinatario', key: 'Nombre' },
+            { header: 'Entregado a', key: 'Recibio' }, // Logic App devuelve 'Recibio'
+            { header: 'Estatus', key: 'Estatus', type: 'status' }
+        ];
+    } else if (screenId === 'LOG_PERSONAL') {
         columns = [
             { header: 'Fecha', key: 'Fecha', type: 'date' },
             { header: 'Nombre', key: 'Nombre', bold: true },
-            { header: 'Detalle', key: 'Residente' }, 
+            { header: 'Cargo', key: 'Cargo' },
+            { header: 'Responsable', key: 'Residente' },
+            { header: 'Ubicación', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` }
+        ];
+    } else if (screenId === 'LOG_INTERNO') {
+         columns = [
+            { header: 'Fecha', key: 'Fecha', type: 'date' },
+            { header: 'Nombre', key: 'Nombre', bold: true },
+            { header: 'Cargo', key: 'Cargo' },
+            { header: 'Tipo Marca', key: 'TipoMarca' }
+        ];
+    } else if (screenId === 'LOG_EVENTOS') {
+        columns = [
+            { header: 'Fecha Evento', key: 'Fecha', type: 'date' },
+            { header: 'Nombre', key: 'Nombre', bold: true },
+            { header: 'Anfitrión', key: 'Residente' },
+            { header: 'Ubicación', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` },
             { header: 'Estatus', key: 'Estatus', type: 'status' }
+        ];
+    } else {
+        // Default para QR
+        columns = [
+            { header: 'Fecha', key: 'Fecha', type: 'date' },
+            { header: 'Nombre', key: 'Nombre', bold: true },
+            { header: 'Residente', key: 'Residente' },
+            { header: 'Relación/Motivo', format: (row) => row.Relacion || row.Motivo || '-' }
         ];
     }
 
@@ -498,9 +547,9 @@ function getStatusBadge(status) {
     if (!status) return '-';
     const s = status.toString().toLowerCase();
     let color = '#3b82f6'; let bg = '#eff6ff'; 
-    if (s.includes('entrada') || s.includes('aceptado') || s.includes('autorizado')) { color = '#16a34a'; bg = '#dcfce7'; }
+    if (s.includes('entrada') || s.includes('aceptado') || s.includes('autorizado') || s.includes('entregado')) { color = '#16a34a'; bg = '#dcfce7'; }
     if (s.includes('salida') || s.includes('rechazado') || s.includes('denegado')) { color = '#dc2626'; bg = '#fee2e2'; }
-    if (s.includes('pendiente')) { color = '#d97706'; bg = '#fef3c7'; }
+    if (s.includes('pendiente') || s.includes('recibido')) { color = '#d97706'; bg = '#fef3c7'; }
     return `<span style="color:${color}; background:${bg}; padding:4px 10px; border-radius:12px; font-size:0.75rem; font-weight:600; text-transform:capitalize;">${status}</span>`;
 }
 
@@ -552,16 +601,34 @@ function showDetails(index) {
     if(!item) return;
     
     let listHtml = '';
-    const ignore = ['odata.type', 'ID', 'Id', 'Foto', 'FotoBase64', 'FirmaBase64'];
+    const ignore = ['odata.type', 'ID', 'Id', 'Foto', 'FotoBase64', 'FirmaBase64', 'ItemInternalId'];
 
     for (const [key, value] of Object.entries(item)) {
         if (!ignore.includes(key) && value) {
+            
+            // CAMBIO: Detectar y formatear fechas en el modal
+            let displayValue = value;
+            if (key.includes('Fecha') || key.includes('Date') || key === 'Created') {
+                displayValue = formatearFecha(value);
+            }
+
             listHtml += `
                 <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #f1f5f9;">
                     <span style="color:#64748b; font-size:0.9rem;">${key}</span>
-                    <span style="color:#1e293b; font-weight:500; font-size:0.9rem; text-align:right; max-width:60%;">${value}</span>
+                    <span style="color:#1e293b; font-weight:500; font-size:0.9rem; text-align:right; max-width:60%; word-break: break-word;">${displayValue}</span>
                 </div>`;
         }
+    }
+
+    // Opcional: Mostrar fotos si existen
+    if(item.FotoBase64 || item.Foto) {
+        const imgSrc = item.FotoBase64 ? `data:image/png;base64,${item.FotoBase64}` : item.Foto;
+        listHtml += `
+            <div style="margin-top:15px; text-align:center;">
+                 <span style="display:block; color:#64748b; font-size:0.9rem; margin-bottom:5px;">Evidencia</span>
+                 <img src="${imgSrc}" style="max-width:100%; border-radius:8px; border:1px solid #e2e8f0;">
+            </div>
+        `;
     }
 
     const modalHtml = `
