@@ -6,12 +6,8 @@
    1. CONFIGURACIÓN Y ESTADO GLOBAL
    ========================================= */
 const CONFIG = {
-    // URL de tu Proxy Admin (Python/Logic App Trigger)
-    API_PROXY_URL: 'https://proxyadmin-cyh0etgyf5c9hch6.mexicocentral-01.azurewebsites.net/api/ravens-admin-proxy',
-    
-    // IMPORTANTE: Este nombre debe ser un ID de condominio REAL que exista en tu base de datos/proxy.
-    // Se usa SOLO para permitir que la petición de Login pase el filtro de seguridad.
-    DEFAULT_LOGIN_CONDO: 'GARDENIAS' 
+    // URL de tu Proxy Admin
+    API_PROXY_URL: 'https://proxyadmin-cyh0etgyf5c9hch6.mexicocentral-01.azurewebsites.net/api/ravens-admin-proxy'
 };
 
 const STATE = {
@@ -33,7 +29,6 @@ function formatearFecha(fechaRaw) {
     const dateObj = new Date(fechaRaw);
     if (isNaN(dateObj.getTime())) return fechaRaw; 
     
-    // Formato local: dd/mm/yyyy hh:mm AM/PM
     return dateObj.toLocaleString('es-MX', {
         day: '2-digit', month: '2-digit', year: 'numeric',
         hour: '2-digit', minute: '2-digit', hour12: true
@@ -105,15 +100,13 @@ const LAYOUT = (content) => `
 function renderMenuItem(id, iconPath, label) {
     const isActive = STATE.activeTab === id;
     
-    // Estilos del contenedor del menú
+    // Estilos del contenedor
     const containerStyle = isActive 
         ? 'background:rgba(255, 255, 255, 0.05); color:white; border-right:3px solid #38bdf8;' 
         : 'color:#94a3b8; border-right:3px solid transparent;';
     
-    // Filtros CSS para colorear los iconos
-    // Activo: Azul Cyan (#38bdf8)
+    // Filtros para colorear los iconos (Azul Cyan si activo, Gris si inactivo)
     const activeFilter = 'invert(66%) sepia(61%) saturate(1448%) hue-rotate(174deg) brightness(103%) contrast(96%)'; 
-    // Inactivo: Gris (#94a3b8)
     const inactiveFilter = 'invert(69%) sepia(11%) saturate(468%) hue-rotate(178deg) brightness(91%) contrast(87%)'; 
     
     const iconFilter = isActive ? activeFilter : inactiveFilter;
@@ -127,7 +120,7 @@ function renderMenuItem(id, iconPath, label) {
 }
 
 const SCREENS = {
-    // === PANTALLA DE LOGIN ===
+    // === LOGIN ===
     'LOGIN': `
         <div style="height:100vh; display:flex; justify-content:center; align-items:center; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
             <div style="background:white; padding:40px; border-radius:16px; width:100%; max-width:400px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
@@ -150,7 +143,7 @@ const SCREENS = {
         </div>
     `,
     
-    // === DASHBOARD PRINCIPAL ===
+    // === DASHBOARD ===
     'DASHBOARD': `
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:20px; margin-bottom:30px;">
             ${renderCard('Accesos Hoy', '<span id="stat-access"><i class="fas fa-spinner fa-spin"></i></span>', 'icons/visita.svg', '#3b82f6', "navigate('LOG_VISITAS')")}
@@ -177,7 +170,7 @@ const SCREENS = {
         </div>
     `,
     
-    // === VISTA DE TABLAS ===
+    // === TABLAS ===
     'TABLE_VIEW': `
         <div style="background:white; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05); border:1px solid #f1f5f9; overflow:hidden;">
             <div style="padding:20px; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center; gap:15px; flex-wrap:wrap;">
@@ -231,7 +224,7 @@ function renderCard(title, valueHtml, iconPath, color, action) {
    ========================================= */
 
 async function callBackend(action, extraData = {}) {
-    // Si no estamos logueados y la acción no es login, forzamos salida
+    // Si no hay sesión y no es login, desconectar.
     if (!STATE.session.condominioId && action !== 'login') {
         doLogout();
         return { success: false, message: "Sesión expirada" };
@@ -240,8 +233,9 @@ async function callBackend(action, extraData = {}) {
     try {
         const payload = { 
             action, 
-            // FIX: Enviamos 'GARDENIAS' (o lo que esté en CONFIG) para pasar la validación del Proxy durante el Login
-            condominio: STATE.session.condominioId || (action === 'login' ? CONFIG.DEFAULT_LOGIN_CONDO : null), 
+            // AL HACER LOGIN: Enviamos "AUTH_REQ" como comodín para pasar el Proxy.
+            // La Logic App decidirá qué condominio responder.
+            condominio: STATE.session.condominioId || (action === 'login' ? 'AUTH_REQ' : null), 
             usuario: STATE.session.usuario || "admin_web", 
             ...extraData 
         };
@@ -275,8 +269,9 @@ async function doLogin() {
     const res = await callBackend('login', { username: user, password: pass });
 
     if (res && res.success) {
-        // Obtenemos el condominio real de la respuesta, o usamos el default como fallback
-        const condId = res.condominioId || res.condominio || CONFIG.DEFAULT_LOGIN_CONDO;
+        // AQUÍ ESTÁ LA CLAVE: La Logic App nos dice qué condominio es
+        const condId = res.condominioId || res.condominio || "DESCONOCIDO";
+        
         STATE.session = { isLoggedIn: true, condominioId: condId, usuario: user };
         localStorage.setItem('ravensAdmin', JSON.stringify(STATE.session));
         navigate('DASHBOARD');
@@ -293,14 +288,12 @@ function checkSession() {
     if (saved) { 
         try {
             STATE.session = JSON.parse(saved); 
-            // Verificamos que tenga la sesión y el condominio guardado
             if(STATE.session.isLoggedIn && STATE.session.condominioId) {
                 navigate('DASHBOARD'); 
                 return;
             }
         } catch(e) { console.error("Error parsing session", e); }
     } 
-    // Si no hay sesión válida, muestra Login
     document.getElementById('viewport').innerHTML = SCREENS['LOGIN']; 
 }
 
@@ -458,7 +451,6 @@ async function loadTableData(screenId) {
     const res = await callBackend('get_history', { tipo_lista: typeMap[screenId] });
     let data = (res && res.data) ? res.data : [];
 
-    // Fusión especial para Paquetería (Combina Entregas y Recepciones)
     if (screenId === 'LOG_PAQUETERIA') {
         const resE = await callBackend('get_history', { tipo_lista: 'PAQUETERIA_ENTREGA' });
         if(resE.data) data = [...data, ...resE.data].sort((a,b) => new Date(b.Fecha || b.Created || 0) - new Date(a.Fecha || a.Created || 0));
@@ -479,7 +471,6 @@ function renderTable(screenId, data) {
 
     let columns = [];
     
-    // DEFINICIÓN EXACTA DE COLUMNAS (Mapeado con Logic App)
     if (screenId === 'LOG_RESIDENTES') {
         columns = [
             { header: 'Nombre', key: 'Nombre', bold: true },
