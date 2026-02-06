@@ -6,7 +6,7 @@
    1. CONFIGURACIÓN Y ESTADO GLOBAL
    ========================================= */
 const CONFIG = {
-    // URL de tu Proxy Admin (Python/Logic App Trigger)
+    // URL de tu Logic App / Proxy Admin
     API_PROXY_URL: 'https://proxyadmin-cyh0etgyf5c9hch6.mexicocentral-01.azurewebsites.net/api/ravens-admin-proxy'
 };
 
@@ -26,7 +26,6 @@ const STATE = {
 
 function formatearFecha(fechaRaw) {
     if (!fechaRaw) return "-";
-    // Intenta parsear la fecha. Soporta ISO string de Logic App
     const dateObj = new Date(fechaRaw);
     if (isNaN(dateObj.getTime())) return fechaRaw; 
     
@@ -107,10 +106,8 @@ function renderMenuItem(id, iconPath, label) {
         : 'color:#94a3b8; border-right:3px solid transparent;';
     
     // Filtros para el icono
-    // Activo: Azul Cyan (#38bdf8)
-    const activeFilter = 'invert(66%) sepia(61%) saturate(1448%) hue-rotate(174deg) brightness(103%) contrast(96%)';
-    // Inactivo: Gris (#94a3b8)
-    const inactiveFilter = 'invert(69%) sepia(11%) saturate(468%) hue-rotate(178deg) brightness(91%) contrast(87%)';
+    const activeFilter = 'invert(66%) sepia(61%) saturate(1448%) hue-rotate(174deg) brightness(103%) contrast(96%)'; // Azul Cyan
+    const inactiveFilter = 'invert(69%) sepia(11%) saturate(468%) hue-rotate(178deg) brightness(91%) contrast(87%)'; // Gris
     
     const iconFilter = isActive ? activeFilter : inactiveFilter;
 
@@ -123,6 +120,7 @@ function renderMenuItem(id, iconPath, label) {
 }
 
 const SCREENS = {
+    // PANTALLA DE LOGIN
     'LOGIN': `
         <div style="height:100vh; display:flex; justify-content:center; align-items:center; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
             <div style="background:white; padding:40px; border-radius:16px; width:100%; max-width:400px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
@@ -222,6 +220,7 @@ function renderCard(title, valueHtml, iconPath, color, action) {
    ========================================= */
 
 async function callBackend(action, extraData = {}) {
+    // Si no estamos logueados y la acción no es login, forzamos salida
     if (!STATE.session.condominioId && action !== 'login') {
         doLogout();
         return { success: false, message: "Sesión expirada" };
@@ -249,6 +248,7 @@ async function callBackend(action, extraData = {}) {
     }
 }
 
+// FUNCIÓN DE LOGIN
 async function doLogin() {
     const user = document.getElementById('login-user').value;
     const pass = document.getElementById('login-pass').value;
@@ -274,14 +274,20 @@ async function doLogin() {
     }
 }
 
+// CHEQUEO DE SESIÓN AL INICIAR
 function checkSession() { 
     const saved = localStorage.getItem('ravensAdmin'); 
     if (saved) { 
-        STATE.session = JSON.parse(saved); 
-        navigate('DASHBOARD'); 
-    } else { 
-        document.getElementById('viewport').innerHTML = SCREENS['LOGIN']; 
+        try {
+            STATE.session = JSON.parse(saved); 
+            if(STATE.session.isLoggedIn) {
+                navigate('DASHBOARD'); 
+                return;
+            }
+        } catch(e) { console.error("Error parsing session", e); }
     } 
+    // Si no hay sesión válida, muestra Login
+    document.getElementById('viewport').innerHTML = SCREENS['LOGIN']; 
 }
 
 function doLogout() { 
@@ -419,7 +425,6 @@ function renderChart(data) {
    ========================================= */
 
 async function loadTableData(screenId) {
-    // CAMBIO: Mapeo exacto contra Switch de Logic App
     const typeMap = {
         'LOG_RESIDENTES': 'RESIDENTE',
         'LOG_VISITAS': 'VISITA',
@@ -460,7 +465,7 @@ function renderTable(screenId, data) {
 
     let columns = [];
     
-    // CAMBIO: Columnas basadas EXACTAMENTE en los "Select" de tu Logic App
+    // DEFINICIÓN EXACTA DE COLUMNAS (Mapeado con Logic App)
     if (screenId === 'LOG_RESIDENTES') {
         columns = [
             { header: 'Nombre', key: 'Nombre', bold: true },
@@ -470,7 +475,7 @@ function renderTable(screenId, data) {
         ];
     } else if (screenId === 'LOG_VISITAS') {
         columns = [
-            { header: 'Fecha', key: 'Fecha', type: 'date' }, // Logic App devuelve "Fecha" (mapeado de Fechayhora)
+            { header: 'Fecha', key: 'Fecha', type: 'date' },
             { header: 'Visitante', key: 'Nombre', bold: true },
             { header: 'Residente', key: 'Residente' },
             { header: 'Destino', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` },
@@ -524,7 +529,7 @@ function renderTable(screenId, data) {
             { header: 'Estatus', key: 'Estatus', type: 'status' }
         ];
     } else {
-        // Default para QR (Residente y Visita tienen estructura similar)
+        // Default para QR
         columns = [
             { header: 'Fecha', key: 'Fecha', type: 'date' },
             { header: 'Nombre', key: 'Nombre', bold: true },
@@ -541,7 +546,6 @@ function renderTable(screenId, data) {
             if (col.format) val = col.format(row);
             else if (row[col.key]) val = row[col.key];
 
-            // Renderizado seguro para valores vacíos
             if (val === undefined || val === null) val = '-';
 
             if (col.type === 'date') val = `<span style="color:#64748b; font-size:0.85rem;">${formatearFecha(val)}</span>`;
@@ -624,7 +628,6 @@ function showDetails(index) {
     for (const [key, value] of Object.entries(item)) {
         if (!ignore.includes(key) && value) {
             
-            // Detección automática de fechas para el modal
             let displayValue = value;
             if (key.includes('Fecha') || key.includes('Date') || key === 'Created' || key === 'Fechayhora') {
                 displayValue = formatearFecha(value);
@@ -638,7 +641,6 @@ function showDetails(index) {
         }
     }
 
-    // Mostrar fotos si existen
     if(item.FotoBase64 || item.Foto) {
         const imgSrc = item.FotoBase64 ? `data:image/png;base64,${item.FotoBase64}` : item.Foto;
         listHtml += `
@@ -724,5 +726,5 @@ function reloadCurrentTable() {
     if(STATE.activeTab === 'DASHBOARD') loadDashboardStats();
 }
 
-// INICIO
+// INICIO - PUNTO DE ENTRADA
 window.onload = checkSession;
