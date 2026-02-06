@@ -229,7 +229,8 @@ async function callBackend(action, extraData = {}) {
     try {
         const payload = { 
             action, 
-            condominio: STATE.session.condominioId, 
+            // CORRECCIÓN: Enviamos un valor genérico "AUTH_REQ" al hacer Login para satisfacer la validación del Proxy
+            condominio: STATE.session.condominioId || (action === 'login' ? 'AUTH_REQ' : null), 
             usuario: STATE.session.usuario || "admin_web", 
             ...extraData 
         };
@@ -280,7 +281,7 @@ function checkSession() {
     if (saved) { 
         try {
             STATE.session = JSON.parse(saved); 
-            if(STATE.session.isLoggedIn) {
+            if(STATE.session.isLoggedIn && STATE.session.condominioId) {
                 navigate('DASHBOARD'); 
                 return;
             }
@@ -444,7 +445,7 @@ async function loadTableData(screenId) {
     const res = await callBackend('get_history', { tipo_lista: typeMap[screenId] });
     let data = (res && res.data) ? res.data : [];
 
-    // Fusión especial para Paquetería
+    // Fusión especial para Paquetería (Combina Entregas y Recepciones)
     if (screenId === 'LOG_PAQUETERIA') {
         const resE = await callBackend('get_history', { tipo_lista: 'PAQUETERIA_ENTREGA' });
         if(resE.data) data = [...data, ...resE.data].sort((a,b) => new Date(b.Fecha || b.Created || 0) - new Date(a.Fecha || a.Created || 0));
