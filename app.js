@@ -26,8 +26,9 @@ const STATE = {
 
 function formatearFecha(fechaRaw) {
     if (!fechaRaw) return "-";
+    // Intenta parsear la fecha. Soporta ISO string de Logic App
     const dateObj = new Date(fechaRaw);
-    if (isNaN(dateObj.getTime())) return fechaRaw; // Si no es fecha válida, devuelve texto original
+    if (isNaN(dateObj.getTime())) return fechaRaw; 
     
     return dateObj.toLocaleString('es-MX', {
         day: '2-digit', month: '2-digit', year: 'numeric',
@@ -53,6 +54,7 @@ const LAYOUT = (content) => `
                 <div style="padding:15px 25px 5px; font-size:0.7rem; color:#64748b; font-weight:bold; text-transform:uppercase;">Bitácoras</div>
                 ${renderMenuItem('LOG_VISITAS', 'icons/visita.svg', 'Visitas')}
                 ${renderMenuItem('LOG_PROVEEDORES', 'icons/servicio.svg', 'Proveedores')}
+                ${renderMenuItem('LOG_NIP_PROV', 'icons/qr.svg', 'Accesos NIP (Prov)')}
                 ${renderMenuItem('LOG_PAQUETERIA', 'icons/incidencias.svg', 'Paquetería')}
                 ${renderMenuItem('LOG_PERSONAL', 'icons/servicio.svg', 'Personal Servicio')}
                 ${renderMenuItem('LOG_INTERNO', 'icons/residente.svg', 'Personal Interno')}
@@ -99,16 +101,18 @@ const LAYOUT = (content) => `
 function renderMenuItem(id, iconPath, label) {
     const isActive = STATE.activeTab === id;
     
-    // CAMBIO: Estilo activo más claro y el icono usa un filtro para volverse azul (#38bdf8) en lugar de blanco puro
+    // Estilos del contenedor del menú
     const containerStyle = isActive 
         ? 'background:rgba(255, 255, 255, 0.05); color:white; border-right:3px solid #38bdf8;' 
         : 'color:#94a3b8; border-right:3px solid transparent;';
     
-    // Filtro para colorear el SVG. Si está activo, lo forzamos a un tono Cyan/Azul claro.
-    // Si no tienes SVGs negros, ajusta esto. brightness(0) invert(1) hace blanco.
-    // Usaremos sepia/saturate para intentar lograr el azul, o simplemente blanco brillante si prefieres.
-    // Para asegurar visibilidad: Activo = Blanco Brillante, Inactivo = Gris.
-    const iconFilter = isActive ? 'brightness(0) invert(1)' : 'brightness(0.5) invert(0.5)';
+    // Filtros para el icono
+    // Activo: Azul Cyan (#38bdf8)
+    const activeFilter = 'invert(66%) sepia(61%) saturate(1448%) hue-rotate(174deg) brightness(103%) contrast(96%)';
+    // Inactivo: Gris (#94a3b8)
+    const inactiveFilter = 'invert(69%) sepia(11%) saturate(468%) hue-rotate(178deg) brightness(91%) contrast(87%)';
+    
+    const iconFilter = isActive ? activeFilter : inactiveFilter;
 
     return `
         <div onclick="navigate('${id}')" style="padding:12px 25px; cursor:pointer; display:flex; align-items:center; gap:12px; font-size:0.9rem; transition:all 0.2s; ${containerStyle}" onmouseover="this.style.color='white'" onmouseout="if('${!isActive}') this.style.color='#94a3b8'">
@@ -311,6 +315,7 @@ function getTitleForScreen(id) {
         'LOG_RESIDENTES': 'Directorio de Residentes',
         'LOG_VISITAS': 'Historial de Visitas',
         'LOG_PROVEEDORES': 'Bitácora de Proveedores',
+        'LOG_NIP_PROV': 'Bitácora de Accesos NIP',
         'LOG_PAQUETERIA': 'Gestión de Paquetería',
         'LOG_PERSONAL': 'Personal de Servicio',
         'LOG_INTERNO': 'Personal Interno',
@@ -335,7 +340,7 @@ async function loadDashboardStats() {
     const paquetes = resPaquetes.data || [];
 
     const hoy = new Date().toISOString().split('T')[0];
-    const visitasHoy = visitas.filter(v => (v.Fecha || v.Created || '').startsWith(hoy)).length;
+    const visitasHoy = visitas.filter(v => (v.Fecha || v.Created || v.Fechayhora || '').startsWith(hoy)).length;
     const paquetesPendientes = paquetes.filter(p => !p.Estatus || p.Estatus.toLowerCase().includes('recibido')).length;
 
     document.getElementById('stat-access').innerText = visitasHoy;
@@ -363,7 +368,7 @@ function renderRecentActivity(items) {
                 <div style="font-size:0.8rem; color:#94a3b8;">${item.Torre || ''} ${item.Departamento || ''} - ${item.Residente || ''}</div>
             </div>
             <div style="font-size:0.8rem; color:#64748b; font-weight:500;">
-                ${formatearFecha(item.Fecha).split(',')[1] || ''}
+                ${formatearFecha(item.Fecha || item.Fechayhora).split(',')[1] || ''}
             </div>
         </div>
     `).join('');
@@ -379,7 +384,7 @@ function renderChart(data) {
     const counts = [0, 0, 0, 0, 0, 0, 0];
 
     data.forEach(item => {
-        const d = new Date(item.Fecha || item.Created);
+        const d = new Date(item.Fecha || item.Fechayhora || item.Created);
         if (!isNaN(d)) {
             counts[d.getDay()]++;
         }
@@ -414,11 +419,12 @@ function renderChart(data) {
    ========================================= */
 
 async function loadTableData(screenId) {
-    // CAMBIO: Mapeo exacto contra Logic App
+    // CAMBIO: Mapeo exacto contra Switch de Logic App
     const typeMap = {
         'LOG_RESIDENTES': 'RESIDENTE',
         'LOG_VISITAS': 'VISITA',
         'LOG_PROVEEDORES': 'PROVEEDOR',
+        'LOG_NIP_PROV': 'NIP_PROVEEDOR',
         'LOG_PAQUETERIA': 'PAQUETERIA_RECEPCION',
         'LOG_PERSONAL': 'PERSONAL_DE_SERVICIO',
         'LOG_INTERNO': 'PERSONAL_INTERNO',
@@ -433,9 +439,10 @@ async function loadTableData(screenId) {
     const res = await callBackend('get_history', { tipo_lista: typeMap[screenId] });
     let data = (res && res.data) ? res.data : [];
 
+    // Fusión especial para Paquetería
     if (screenId === 'LOG_PAQUETERIA') {
         const resE = await callBackend('get_history', { tipo_lista: 'PAQUETERIA_ENTREGA' });
-        if(resE.data) data = [...data, ...resE.data].sort((a,b) => new Date(b.Fecha || b.Created) - new Date(a.Fecha || a.Created));
+        if(resE.data) data = [...data, ...resE.data].sort((a,b) => new Date(b.Fecha || b.Created || 0) - new Date(a.Fecha || a.Created || 0));
     }
 
     STATE.currentData = data;
@@ -453,7 +460,7 @@ function renderTable(screenId, data) {
 
     let columns = [];
     
-    // CAMBIO: Definición de columnas específica para cada lista basada en Logic App
+    // CAMBIO: Columnas basadas EXACTAMENTE en los "Select" de tu Logic App
     if (screenId === 'LOG_RESIDENTES') {
         columns = [
             { header: 'Nombre', key: 'Nombre', bold: true },
@@ -463,7 +470,7 @@ function renderTable(screenId, data) {
         ];
     } else if (screenId === 'LOG_VISITAS') {
         columns = [
-            { header: 'Fecha', key: 'Fecha', type: 'date' },
+            { header: 'Fecha', key: 'Fecha', type: 'date' }, // Logic App devuelve "Fecha" (mapeado de Fechayhora)
             { header: 'Visitante', key: 'Nombre', bold: true },
             { header: 'Residente', key: 'Residente' },
             { header: 'Destino', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` },
@@ -477,12 +484,20 @@ function renderTable(screenId, data) {
             { header: 'Asunto', key: 'Asunto' },
             { header: 'Destino', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` }
         ];
+    } else if (screenId === 'LOG_NIP_PROV') {
+        columns = [
+            { header: 'Fecha', key: 'Fecha', type: 'date' },
+            { header: 'Nombre', key: 'Nombre', bold: true },
+            { header: 'Empresa', key: 'Empresa' },
+            { header: 'Asunto', key: 'Asunto' },
+            { header: 'Estatus', key: 'Estatus', type: 'status' }
+        ];
     } else if (screenId === 'LOG_PAQUETERIA') {
         columns = [
             { header: 'Fecha', key: 'Fecha', type: 'date' },
-            { header: 'Paquetería', key: 'Paqueteria', bold: true }, // Logic App devuelve 'Paqueteria'
+            { header: 'Paquetería', key: 'Paqueteria', bold: true },
             { header: 'Destinatario', key: 'Nombre' },
-            { header: 'Entregado a', key: 'Recibio' }, // Logic App devuelve 'Recibio'
+            { header: 'Entregado a', key: 'Recibio' },
             { header: 'Estatus', key: 'Estatus', type: 'status' }
         ];
     } else if (screenId === 'LOG_PERSONAL') {
@@ -509,12 +524,12 @@ function renderTable(screenId, data) {
             { header: 'Estatus', key: 'Estatus', type: 'status' }
         ];
     } else {
-        // Default para QR
+        // Default para QR (Residente y Visita tienen estructura similar)
         columns = [
             { header: 'Fecha', key: 'Fecha', type: 'date' },
             { header: 'Nombre', key: 'Nombre', bold: true },
             { header: 'Residente', key: 'Residente' },
-            { header: 'Relación/Motivo', format: (row) => row.Relacion || row.Motivo || '-' }
+            { header: 'Motivo/Relación', format: (row) => row.Relacion || row.Motivo || row['Relación '] || '-' }
         ];
     }
 
@@ -525,6 +540,9 @@ function renderTable(screenId, data) {
             let val = '-';
             if (col.format) val = col.format(row);
             else if (row[col.key]) val = row[col.key];
+
+            // Renderizado seguro para valores vacíos
+            if (val === undefined || val === null) val = '-';
 
             if (col.type === 'date') val = `<span style="color:#64748b; font-size:0.85rem;">${formatearFecha(val)}</span>`;
             if (col.type === 'status') val = getStatusBadge(val);
@@ -606,9 +624,9 @@ function showDetails(index) {
     for (const [key, value] of Object.entries(item)) {
         if (!ignore.includes(key) && value) {
             
-            // CAMBIO: Detectar y formatear fechas en el modal
+            // Detección automática de fechas para el modal
             let displayValue = value;
-            if (key.includes('Fecha') || key.includes('Date') || key === 'Created') {
+            if (key.includes('Fecha') || key.includes('Date') || key === 'Created' || key === 'Fechayhora') {
                 displayValue = formatearFecha(value);
             }
 
@@ -620,7 +638,7 @@ function showDetails(index) {
         }
     }
 
-    // Opcional: Mostrar fotos si existen
+    // Mostrar fotos si existen
     if(item.FotoBase64 || item.Foto) {
         const imgSrc = item.FotoBase64 ? `data:image/png;base64,${item.FotoBase64}` : item.Foto;
         listHtml += `
