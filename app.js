@@ -6,8 +6,12 @@
    1. CONFIGURACIÓN Y ESTADO GLOBAL
    ========================================= */
 const CONFIG = {
-    // URL de tu Logic App / Proxy Admin
-    API_PROXY_URL: 'https://proxyadmin-cyh0etgyf5c9hch6.mexicocentral-01.azurewebsites.net/api/ravens-admin-proxy'
+    // URL de tu Proxy Admin (Python/Logic App Trigger)
+    API_PROXY_URL: 'https://proxyadmin-cyh0etgyf5c9hch6.mexicocentral-01.azurewebsites.net/api/ravens-admin-proxy',
+    
+    // IMPORTANTE: Este nombre debe ser un ID de condominio REAL que exista en tu base de datos/proxy.
+    // Se usa SOLO para permitir que la petición de Login pase el filtro de seguridad.
+    DEFAULT_LOGIN_CONDO: 'GARDENIAS' 
 };
 
 const STATE = {
@@ -29,6 +33,7 @@ function formatearFecha(fechaRaw) {
     const dateObj = new Date(fechaRaw);
     if (isNaN(dateObj.getTime())) return fechaRaw; 
     
+    // Formato local: dd/mm/yyyy hh:mm AM/PM
     return dateObj.toLocaleString('es-MX', {
         day: '2-digit', month: '2-digit', year: 'numeric',
         hour: '2-digit', minute: '2-digit', hour12: true
@@ -105,9 +110,11 @@ function renderMenuItem(id, iconPath, label) {
         ? 'background:rgba(255, 255, 255, 0.05); color:white; border-right:3px solid #38bdf8;' 
         : 'color:#94a3b8; border-right:3px solid transparent;';
     
-    // Filtros para el icono
-    const activeFilter = 'invert(66%) sepia(61%) saturate(1448%) hue-rotate(174deg) brightness(103%) contrast(96%)'; // Azul Cyan
-    const inactiveFilter = 'invert(69%) sepia(11%) saturate(468%) hue-rotate(178deg) brightness(91%) contrast(87%)'; // Gris
+    // Filtros CSS para colorear los iconos
+    // Activo: Azul Cyan (#38bdf8)
+    const activeFilter = 'invert(66%) sepia(61%) saturate(1448%) hue-rotate(174deg) brightness(103%) contrast(96%)'; 
+    // Inactivo: Gris (#94a3b8)
+    const inactiveFilter = 'invert(69%) sepia(11%) saturate(468%) hue-rotate(178deg) brightness(91%) contrast(87%)'; 
     
     const iconFilter = isActive ? activeFilter : inactiveFilter;
 
@@ -120,7 +127,7 @@ function renderMenuItem(id, iconPath, label) {
 }
 
 const SCREENS = {
-    // PANTALLA DE LOGIN
+    // === PANTALLA DE LOGIN ===
     'LOGIN': `
         <div style="height:100vh; display:flex; justify-content:center; align-items:center; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
             <div style="background:white; padding:40px; border-radius:16px; width:100%; max-width:400px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
@@ -142,6 +149,8 @@ const SCREENS = {
             </div>
         </div>
     `,
+    
+    // === DASHBOARD PRINCIPAL ===
     'DASHBOARD': `
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:20px; margin-bottom:30px;">
             ${renderCard('Accesos Hoy', '<span id="stat-access"><i class="fas fa-spinner fa-spin"></i></span>', 'icons/visita.svg', '#3b82f6', "navigate('LOG_VISITAS')")}
@@ -167,6 +176,8 @@ const SCREENS = {
             </div>
         </div>
     `,
+    
+    // === VISTA DE TABLAS ===
     'TABLE_VIEW': `
         <div style="background:white; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05); border:1px solid #f1f5f9; overflow:hidden;">
             <div style="padding:20px; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center; gap:15px; flex-wrap:wrap;">
@@ -229,8 +240,8 @@ async function callBackend(action, extraData = {}) {
     try {
         const payload = { 
             action, 
-            // CORRECCIÓN: Enviamos un valor genérico "AUTH_REQ" al hacer Login para satisfacer la validación del Proxy
-            condominio: STATE.session.condominioId || (action === 'login' ? 'AUTH_REQ' : null), 
+            // FIX: Enviamos 'GARDENIAS' (o lo que esté en CONFIG) para pasar la validación del Proxy durante el Login
+            condominio: STATE.session.condominioId || (action === 'login' ? CONFIG.DEFAULT_LOGIN_CONDO : null), 
             usuario: STATE.session.usuario || "admin_web", 
             ...extraData 
         };
@@ -264,7 +275,8 @@ async function doLogin() {
     const res = await callBackend('login', { username: user, password: pass });
 
     if (res && res.success) {
-        const condId = res.condominioId || res.condominio || 'GARDENIAS'; // Fallback
+        // Obtenemos el condominio real de la respuesta, o usamos el default como fallback
+        const condId = res.condominioId || res.condominio || CONFIG.DEFAULT_LOGIN_CONDO;
         STATE.session = { isLoggedIn: true, condominioId: condId, usuario: user };
         localStorage.setItem('ravensAdmin', JSON.stringify(STATE.session));
         navigate('DASHBOARD');
@@ -281,6 +293,7 @@ function checkSession() {
     if (saved) { 
         try {
             STATE.session = JSON.parse(saved); 
+            // Verificamos que tenga la sesión y el condominio guardado
             if(STATE.session.isLoggedIn && STATE.session.condominioId) {
                 navigate('DASHBOARD'); 
                 return;
