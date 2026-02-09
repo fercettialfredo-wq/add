@@ -464,7 +464,7 @@ async function loadTableData(screenId) {
     }
 
     // === FILTRADO SOLICITADO ===
-    // Solo para NIP, QR Visita y Eventos (Se quitó PROVEEDORES)
+    // Solo para NIP, QR Visita y Eventos
     // Ocultar si Estatus/Estado está vacio o dice "nuevo"
     const tabsToFilter = ['LOG_NIP_PROV', 'LOG_QR_VIS', 'LOG_EVENTOS'];
     
@@ -497,7 +497,6 @@ function renderTable(screenId, data) {
             { header: 'Nombre', key: 'Nombre', bold: true },
             { header: 'Ubicación', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` },
             { header: 'Contacto', key: 'Telefono' }
-            // Se quitó la columna Estado
         ];
     } else if (screenId === 'LOG_VISITAS') {
         columns = [
@@ -505,6 +504,8 @@ function renderTable(screenId, data) {
             { header: 'Visitante', key: 'Nombre', bold: true },
             { header: 'Residente', key: 'Residente' },
             { header: 'Destino', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` },
+            { header: 'Motivo', key: 'Motivo' },
+            { header: 'Placa', key: 'Placa' },
             { header: 'Estatus', key: 'Estatus', type: 'status' }
         ];
     } else if (screenId === 'LOG_PROVEEDORES') {
@@ -514,7 +515,8 @@ function renderTable(screenId, data) {
             { header: 'Personal', key: 'Nombre' },
             { header: 'Asunto', key: 'Asunto' },
             { header: 'Destino', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` },
-            { header: 'Estatus', key: 'Estatus', type: 'status' } // Se agregó Estatus
+            { header: 'Residente', key: 'Residente' },
+            { header: 'Estatus', key: 'Estatus', type: 'status' }
         ];
     } else if (screenId === 'LOG_NIP_PROV') {
         columns = [
@@ -522,6 +524,7 @@ function renderTable(screenId, data) {
             { header: 'Nombre', key: 'Nombre', bold: true },
             { header: 'Empresa', key: 'Empresa' },
             { header: 'Asunto', key: 'Asunto' },
+            { header: 'Residente', key: 'Residente' },
             { header: 'Estatus', key: 'Estatus', type: 'status' }
         ];
     } else if (screenId === 'LOG_PAQUETERIA') {
@@ -530,6 +533,7 @@ function renderTable(screenId, data) {
             { header: 'Paquetería', key: 'Paqueteria', bold: true },
             { header: 'Destinatario', key: 'Nombre' },
             { header: 'Entregado a', key: 'Recibio' },
+            { header: 'Ubicación', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` },
             { header: 'Estatus', key: 'Estatus', type: 'status' }
         ];
     } else if (screenId === 'LOG_PERSONAL') {
@@ -538,14 +542,17 @@ function renderTable(screenId, data) {
             { header: 'Nombre', key: 'Nombre', bold: true },
             { header: 'Cargo', key: 'Cargo' },
             { header: 'Responsable', key: 'Residente' },
-            { header: 'Ubicación', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` }
+            { header: 'Ubicación', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` },
+            { header: 'Estatus', key: 'Estatus', type: 'status' }
         ];
     } else if (screenId === 'LOG_INTERNO') {
          columns = [
             { header: 'Fecha', key: 'Fecha', type: 'date' },
             { header: 'Nombre', key: 'Nombre', bold: true },
             { header: 'Cargo', key: 'Cargo' },
-            { header: 'Tipo Marca', key: 'TipoMarca' }
+            { header: 'Tipo Marca', key: 'TipoMarca' },
+            { header: 'Responsable', key: 'Residente' },
+            { header: 'Ubicación', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` }
         ];
     } else if (screenId === 'LOG_EVENTOS') {
         columns = [
@@ -560,15 +567,16 @@ function renderTable(screenId, data) {
             { header: 'Fecha', key: 'Fecha', type: 'date' },
             { header: 'Nombre', key: 'Nombre', bold: true },
             { header: 'Residente', key: 'Residente' },
+            { header: 'Ubicación', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` },
             { header: 'Motivo', key: 'Motivo' },
-            { header: 'Estatus', key: 'Estatus', type: 'status' } // Se agregó Estatus
+            { header: 'Estatus', key: 'Estatus', type: 'status' }
         ];
     } else if (screenId === 'LOG_QR_RES') {
         columns = [
             { header: 'Fecha', key: 'Fecha', type: 'date' },
             { header: 'Nombre', key: 'Nombre', bold: true },
+            { header: 'Residente', key: 'Residente' },
             { header: 'Ubicación', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` }
-            // Se eliminó Motivo/Relación
         ];
     } else {
         // Default genérico
