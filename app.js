@@ -586,7 +586,8 @@ function renderTable(screenId, data) {
             { header: 'Tipo Marca', key: 'TipoMarca' },
             { header: 'Residente', key: 'Residente' },
             { header: 'Torre', key: 'Torre' },
-            { header: 'Departamento', key: 'Departamento' }
+            { header: 'Departamento', key: 'Departamento' },
+            { header: 'Foto', type: 'image' }
         ];
     } else if (screenId === 'LOG_EVENTOS') {
         columns = [
@@ -629,9 +630,10 @@ function renderTable(screenId, data) {
             if (col.format) {
                 val = col.format(row);
             } else if (col.type === 'image') {
-                // Lógica para detectar foto
-                // NOTA: Para tabla, solo revisamos si existe el dato, no lo mostramos completo
-                const imgData = row.FotoBase64 || row.FirmaBase64 || row.Foto;
+                // Lógica mejorada para detectar foto o firma (URL o Base64)
+                // Ahora busca también 'Firma' y 'Foto' (no solo Base64)
+                const imgData = row.FotoBase64 || row.FirmaBase64 || row.Foto || row.Firma;
+                
                 if(imgData) {
                     val = `<div style="width:30px; height:30px; background:#f1f5f9; border-radius:4px; display:flex; align-items:center; justify-content:center; cursor:pointer;" onclick="showDetails(${index})"><i class="fas fa-image" style="color:#64748b;"></i></div>`;
                 } else {
@@ -718,8 +720,8 @@ function showDetails(index) {
     if(!item) return;
     
     let listHtml = '';
-    // Ignoramos claves técnicas o imágenes para que no salgan como texto
-    const ignore = ['odata.type', 'ID', 'Id', 'ItemInternalId', 'Foto', 'FotoBase64', 'FirmaBase64', '_origen'];
+    // AGREGAMOS 'Firma' y 'Foto' al ignore para que no salgan como texto (URL)
+    const ignore = ['odata.type', 'ID', 'Id', 'ItemInternalId', 'Foto', 'FotoBase64', 'FirmaBase64', 'Firma', '_origen'];
 
     for (const [key, value] of Object.entries(item)) {
         if (!ignore.includes(key) && value) {
@@ -759,8 +761,10 @@ function showDetails(index) {
 
     if (item.FotoBase64) imagesHtml += renderImg('Foto', item.FotoBase64);
     if (item.FirmaBase64) imagesHtml += renderImg('Firma', item.FirmaBase64);
-    // Solo mostrar Foto (URL) si no hay FotoBase64 para evitar duplicados, o si es personal de servicio (que usa 'Foto')
+    
+    // CORRECCIÓN: Mostrar Foto y Firma si vienen como URL (sin Base64)
     if (item.Foto && !item.FotoBase64) imagesHtml += renderImg('Foto', item.Foto);
+    if (item.Firma && !item.FirmaBase64) imagesHtml += renderImg('Firma', item.Firma);
 
     const modalHtml = `
         <div id="modal-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.6); display:flex; justify-content:center; align-items:center; z-index:9999; backdrop-filter:blur(2px);">
