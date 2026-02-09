@@ -57,7 +57,6 @@ const LAYOUT = (content) => `
                 <div style="padding:15px 25px 5px; font-size:0.7rem; color:#64748b; font-weight:bold; text-transform:uppercase;">Bitácoras</div>
                 ${renderMenuItem('LOG_VISITAS', 'icons/visita.svg', 'Visitas')}
                 ${renderMenuItem('LOG_PROVEEDORES', 'icons/servicio.svg', 'Proveedores')}
-                ${renderMenuItem('LOG_NIP_PROV', 'icons/qr.svg', 'Accesos NIP (Prov)')}
                 ${renderMenuItem('LOG_PAQUETERIA', 'icons/incidencias.svg', 'Paquetería')}
                 ${renderMenuItem('LOG_PERSONAL', 'icons/servicio.svg', 'Personal Servicio')}
                 ${renderMenuItem('LOG_INTERNO', 'icons/residente.svg', 'Personal Interno')}
@@ -66,6 +65,7 @@ const LAYOUT = (content) => `
                 ${renderMenuItem('LOG_QR_RES', 'icons/qr.svg', 'QR Residentes')}
                 ${renderMenuItem('LOG_QR_VIS', 'icons/qr.svg', 'QR Visitas')}
                 ${renderMenuItem('LOG_EVENTOS', 'icons/evento.svg', 'Eventos')}
+                ${renderMenuItem('LOG_NIP_PROV', 'icons/qr.svg', 'Accesos NIP (Prov)')}
             </nav>
 
             <div style="padding:20px; border-top:1px solid #334155;">
@@ -270,19 +270,15 @@ async function doLogin() {
     errorMsg.style.display = 'none';
     btn.innerText = "Verificando..."; btn.disabled = true; btn.style.opacity = "0.7";
 
-    // AQUI ESTA EL CAMBIO: Forzamos el uso de la Logic App de Login Global
+    // Enviamos forzosamente AUTH_REQ para que el Proxy use la Logic App de Login global
     const res = await callBackend('login', { 
         username: user, 
         password: pass,
-        condominio: CONFIG.LOGIN_ROUTING_KEY // Enviamos 'AUTH_REQ'
+        condominio: CONFIG.LOGIN_ROUTING_KEY 
     });
 
     if (res && res.success) {
-        // La Logic App de Login nos devuelve el condominio REAL (ej. TORRE_A)
         const condId = res.condominioId || res.condominio || "DESCONOCIDO";
-        
-        // Guardamos el condominio real en la sesión. 
-        // A partir de aquí, callBackend usará este ID.
         STATE.session = { isLoggedIn: true, condominioId: condId, usuario: user };
         localStorage.setItem('ravensAdmin', JSON.stringify(STATE.session));
         navigate('DASHBOARD');
@@ -467,6 +463,20 @@ async function loadTableData(screenId) {
         if(resE.data) data = [...data, ...resE.data].sort((a,b) => new Date(b.Fecha || b.Created || 0) - new Date(a.Fecha || a.Created || 0));
     }
 
+    // === FILTRADO SOLICITADO ===
+    // Solo para NIP, QR Visita y Eventos (Se quitó PROVEEDORES)
+    // Ocultar si Estatus/Estado está vacio o dice "nuevo"
+    const tabsToFilter = ['LOG_NIP_PROV', 'LOG_QR_VIS', 'LOG_EVENTOS'];
+    
+    if (tabsToFilter.includes(screenId) && data.length > 0) {
+        data = data.filter(item => {
+            const status = (item.Estatus || item.Estado || '').trim().toLowerCase();
+            // Si está vacío O si dice "nuevo", lo sacamos (return false)
+            if (!status || status === 'nuevo') return false;
+            return true;
+        });
+    }
+
     STATE.currentData = data;
     renderTable(screenId, data);
 }
@@ -486,8 +496,8 @@ function renderTable(screenId, data) {
         columns = [
             { header: 'Nombre', key: 'Nombre', bold: true },
             { header: 'Ubicación', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` },
-            { header: 'Contacto', key: 'Telefono' },
-            { header: 'Estado', key: 'Activo', type: 'bool' }
+            { header: 'Contacto', key: 'Telefono' }
+            // Se quitó la columna Estado
         ];
     } else if (screenId === 'LOG_VISITAS') {
         columns = [
@@ -503,7 +513,8 @@ function renderTable(screenId, data) {
             { header: 'Empresa', key: 'Empresa', bold: true },
             { header: 'Personal', key: 'Nombre' },
             { header: 'Asunto', key: 'Asunto' },
-            { header: 'Destino', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` }
+            { header: 'Destino', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` },
+            { header: 'Estatus', key: 'Estatus', type: 'status' } // Se agregó Estatus
         ];
     } else if (screenId === 'LOG_NIP_PROV') {
         columns = [
