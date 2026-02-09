@@ -10,7 +10,6 @@ const CONFIG = {
     API_PROXY_URL: 'https://proxyadmin-cyh0etgyf5c9hch6.mexicocentral-01.azurewebsites.net/api/ravens-admin-proxy',
     
     // CLAVE MAESTRA PARA EL LOGIN
-    // Esta clave le dice al Proxy que busque la variable: URL_ADMIN_AUTH_REQ
     LOGIN_ROUTING_KEY: 'AUTH_REQ' 
 };
 
@@ -58,10 +57,10 @@ const LAYOUT = (content) => `
                 ${renderMenuItem('LOG_VISITAS', 'icons/visita.svg', 'Visitas')}
                 ${renderMenuItem('LOG_PROVEEDORES', 'icons/servicio.svg', 'Proveedores')}
                 ${renderMenuItem('LOG_PAQUETERIA', 'icons/incidencias.svg', 'Paquetería')}
-                ${renderMenuItem('LOG_PERSONAL', 'icons/servicio.svg', 'Personal Servicio')}
                 ${renderMenuItem('LOG_INTERNO', 'icons/residente.svg', 'Personal Interno')}
                 
                 <div style="padding:15px 25px 5px; font-size:0.7rem; color:#64748b; font-weight:bold; text-transform:uppercase;">Digital</div>
+                ${renderMenuItem('LOG_PERSONAL', 'icons/servicio.svg', 'Personal Servicio')}
                 ${renderMenuItem('LOG_QR_RES', 'icons/qr.svg', 'QR Residentes')}
                 ${renderMenuItem('LOG_QR_VIS', 'icons/qr.svg', 'QR Visitas')}
                 ${renderMenuItem('LOG_EVENTOS', 'icons/evento.svg', 'Eventos')}
@@ -104,15 +103,13 @@ const LAYOUT = (content) => `
 function renderMenuItem(id, iconPath, label) {
     const isActive = STATE.activeTab === id;
     
-    // Estilos del contenedor
+    // Estilos
     const containerStyle = isActive 
         ? 'background:rgba(255, 255, 255, 0.05); color:white; border-right:3px solid #38bdf8;' 
         : 'color:#94a3b8; border-right:3px solid transparent;';
     
-    // Filtros para colorear los iconos (Azul Cyan si activo, Gris si inactivo)
     const activeFilter = 'invert(66%) sepia(61%) saturate(1448%) hue-rotate(174deg) brightness(103%) contrast(96%)'; 
     const inactiveFilter = 'invert(69%) sepia(11%) saturate(468%) hue-rotate(178deg) brightness(91%) contrast(87%)'; 
-    
     const iconFilter = isActive ? activeFilter : inactiveFilter;
 
     return `
@@ -228,8 +225,6 @@ function renderCard(title, valueHtml, iconPath, color, action) {
    ========================================= */
 
 async function callBackend(action, extraData = {}) {
-    // Si no hay sesión y no es login, desconectar.
-    // NOTA: Si extraData trae 'condominio', es un override (ej. Login)
     if (!STATE.session.condominioId && !extraData.condominio && action !== 'login') {
         doLogout();
         return { success: false, message: "Sesión expirada" };
@@ -238,7 +233,6 @@ async function callBackend(action, extraData = {}) {
     try {
         const payload = { 
             action, 
-            // PRIORIDAD: Si extraData tiene condominio (login), usalo. Si no, usa el de la sesión.
             condominio: extraData.condominio || STATE.session.condominioId, 
             usuario: STATE.session.usuario || "admin_web", 
             ...extraData 
@@ -270,7 +264,6 @@ async function doLogin() {
     errorMsg.style.display = 'none';
     btn.innerText = "Verificando..."; btn.disabled = true; btn.style.opacity = "0.7";
 
-    // Enviamos forzosamente AUTH_REQ para que el Proxy use la Logic App de Login global
     const res = await callBackend('login', { 
         username: user, 
         password: pass,
@@ -351,6 +344,7 @@ function getTitleForScreen(id) {
    ========================================= */
 
 async function loadDashboardStats() {
+    // Para el dashboard usamos solo recepción para contar paquetes
     const [resVisitas, resPaquetes] = await Promise.all([
         callBackend('get_history', { tipo_lista: 'VISITA' }),
         callBackend('get_history', { tipo_lista: 'PAQUETERIA_RECEPCION' })
@@ -439,12 +433,44 @@ function renderChart(data) {
    ========================================= */
 
 async function loadTableData(screenId) {
+    // Si es PAQUETERIA, necesitamos unir dos fuentes de datos
+    if (screenId === 'LOG_PAQUETERIA') {
+        const tbody = document.getElementById('table-body');
+        if(tbody) tbody.innerHTML = '<tr><td colspan="10" style="padding:40px; text-align:center; color:#64748b;"><i class="fas fa-spinner fa-spin"></i> Cargando paquetería...</td></tr>';
+
+        // Hacemos las dos llamadas en paralelo
+        const [resRec, resEnt] = await Promise.all([
+            callBackend('get_history', { tipo_lista: 'PAQUETERIA_RECEPCION' }),
+            callBackend('get_history', { tipo_lista: 'PAQUETERIA_ENTREGA' })
+        ]);
+
+        let listRec = (resRec && resRec.data) ? resRec.data : [];
+        let listEnt = (resEnt && resEnt.data) ? resEnt.data : [];
+
+        // Normalizamos los datos para que tengan una estructura común antes de unirlos
+        listRec = listRec.map(item => ({ ...item, _origen: 'RECEPCION' }));
+        listEnt = listEnt.map(item => ({ ...item, _origen: 'ENTREGA' }));
+
+        let merged = [...listRec, ...listEnt];
+        
+        // Ordenar por fecha descendente
+        merged.sort((a, b) => {
+            const dateA = new Date(a.Fecha || 0);
+            const dateB = new Date(b.Fecha || 0);
+            return dateB - dateA;
+        });
+
+        STATE.currentData = merged;
+        renderTable(screenId, merged);
+        return;
+    }
+
+    // Lógica normal para las demás listas
     const typeMap = {
         'LOG_RESIDENTES': 'RESIDENTE',
         'LOG_VISITAS': 'VISITA',
         'LOG_PROVEEDORES': 'PROVEEDOR',
         'LOG_NIP_PROV': 'NIP_PROVEEDOR',
-        'LOG_PAQUETERIA': 'PAQUETERIA_RECEPCION',
         'LOG_PERSONAL': 'PERSONAL_DE_SERVICIO',
         'LOG_INTERNO': 'PERSONAL_INTERNO',
         'LOG_QR_RES': 'QR_RESIDENTE',
@@ -458,20 +484,13 @@ async function loadTableData(screenId) {
     const res = await callBackend('get_history', { tipo_lista: typeMap[screenId] });
     let data = (res && res.data) ? res.data : [];
 
-    if (screenId === 'LOG_PAQUETERIA') {
-        const resE = await callBackend('get_history', { tipo_lista: 'PAQUETERIA_ENTREGA' });
-        if(resE.data) data = [...data, ...resE.data].sort((a,b) => new Date(b.Fecha || b.Created || 0) - new Date(a.Fecha || a.Created || 0));
-    }
-
-    // === FILTRADO SOLICITADO ===
+    // === FILTRADO ===
     // Solo para NIP, QR Visita y Eventos
-    // Ocultar si Estatus/Estado está vacio o dice "nuevo"
     const tabsToFilter = ['LOG_NIP_PROV', 'LOG_QR_VIS', 'LOG_EVENTOS'];
     
     if (tabsToFilter.includes(screenId) && data.length > 0) {
         data = data.filter(item => {
             const status = (item.Estatus || item.Estado || '').trim().toLowerCase();
-            // Si está vacío O si dice "nuevo", lo sacamos (return false)
             if (!status || status === 'nuevo') return false;
             return true;
         });
@@ -495,15 +514,17 @@ function renderTable(screenId, data) {
     if (screenId === 'LOG_RESIDENTES') {
         columns = [
             { header: 'Nombre', key: 'Nombre', bold: true },
-            { header: 'Ubicación', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` },
-            { header: 'Contacto', key: 'Telefono' }
+            { header: 'Torre', key: 'Torre' },
+            { header: 'Departamento', key: 'Departamento' },
+            { header: 'Teléfono', key: 'Telefono' }
         ];
     } else if (screenId === 'LOG_VISITAS') {
         columns = [
             { header: 'Fecha', key: 'Fecha', type: 'date' },
             { header: 'Visitante', key: 'Nombre', bold: true },
             { header: 'Residente', key: 'Residente' },
-            { header: 'Destino', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` },
+            { header: 'Torre', key: 'Torre' },
+            { header: 'Departamento', key: 'Departamento' },
             { header: 'Motivo', key: 'Motivo' },
             { header: 'Placa', key: 'Placa' },
             { header: 'Estatus', key: 'Estatus', type: 'status' }
@@ -514,7 +535,8 @@ function renderTable(screenId, data) {
             { header: 'Empresa', key: 'Empresa', bold: true },
             { header: 'Personal', key: 'Nombre' },
             { header: 'Asunto', key: 'Asunto' },
-            { header: 'Destino', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` },
+            { header: 'Torre', key: 'Torre' },
+            { header: 'Departamento', key: 'Departamento' },
             { header: 'Residente', key: 'Residente' },
             { header: 'Estatus', key: 'Estatus', type: 'status' }
         ];
@@ -528,13 +550,24 @@ function renderTable(screenId, data) {
             { header: 'Estatus', key: 'Estatus', type: 'status' }
         ];
     } else if (screenId === 'LOG_PAQUETERIA') {
+        // Lógica especial para unir las columnas de las dos fuentes
         columns = [
             { header: 'Fecha', key: 'Fecha', type: 'date' },
-            { header: 'Paquetería', key: 'Paqueteria', bold: true },
-            { header: 'Destinatario', key: 'Nombre' },
-            { header: 'Entregado a', key: 'Recibio' },
-            { header: 'Ubicación', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` },
-            { header: 'Estatus', key: 'Estatus', type: 'status' }
+            { 
+                header: 'Tipo Movimiento', 
+                format: (row) => row._origen === 'RECEPCION' 
+                    ? '<span style="color:#2563eb; font-weight:600;">Recepción Caseta</span>' 
+                    : '<span style="color:#16a34a; font-weight:600;">Entrega a Residente</span>'
+            },
+            { 
+                header: 'Detalle (Paquetería/Recibió)', 
+                format: (row) => row._origen === 'RECEPCION' ? row.Paqueteria : row.Recibio,
+                bold: true
+            },
+            { header: 'Residente', key: 'Residente' },
+            { header: 'Torre', key: 'Torre' },
+            { header: 'Depto', key: 'Departamento' },
+            { header: 'Foto/Firma', type: 'image' } // Nueva columna de imagen
         ];
     } else if (screenId === 'LOG_PERSONAL') {
         columns = [
@@ -542,8 +575,10 @@ function renderTable(screenId, data) {
             { header: 'Nombre', key: 'Nombre', bold: true },
             { header: 'Cargo', key: 'Cargo' },
             { header: 'Responsable', key: 'Residente' },
-            { header: 'Ubicación', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` },
-            { header: 'Estatus', key: 'Estatus', type: 'status' }
+            { header: 'Torre', key: 'Torre' },
+            { header: 'Departamento', key: 'Departamento' },
+            { header: 'Estatus', key: 'Estatus', type: 'status' },
+            { header: 'Foto', type: 'image' }
         ];
     } else if (screenId === 'LOG_INTERNO') {
          columns = [
@@ -551,15 +586,17 @@ function renderTable(screenId, data) {
             { header: 'Nombre', key: 'Nombre', bold: true },
             { header: 'Cargo', key: 'Cargo' },
             { header: 'Tipo Marca', key: 'TipoMarca' },
-            { header: 'Responsable', key: 'Residente' },
-            { header: 'Ubicación', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` }
+            { header: 'Residente', key: 'Residente' },
+            { header: 'Torre', key: 'Torre' },
+            { header: 'Departamento', key: 'Departamento' }
         ];
     } else if (screenId === 'LOG_EVENTOS') {
         columns = [
             { header: 'Fecha Evento', key: 'Fecha', type: 'date' },
-            { header: 'Nombre', key: 'Nombre', bold: true },
+            { header: 'Nombre Evento', key: 'Nombre', bold: true },
             { header: 'Anfitrión', key: 'Residente' },
-            { header: 'Ubicación', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` },
+            { header: 'Torre', key: 'Torre' },
+            { header: 'Departamento', key: 'Departamento' },
             { header: 'Estatus', key: 'Estatus', type: 'status' }
         ];
     } else if (screenId === 'LOG_QR_VIS') {
@@ -567,7 +604,8 @@ function renderTable(screenId, data) {
             { header: 'Fecha', key: 'Fecha', type: 'date' },
             { header: 'Nombre', key: 'Nombre', bold: true },
             { header: 'Residente', key: 'Residente' },
-            { header: 'Ubicación', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` },
+            { header: 'Torre', key: 'Torre' },
+            { header: 'Departamento', key: 'Departamento' },
             { header: 'Motivo', key: 'Motivo' },
             { header: 'Estatus', key: 'Estatus', type: 'status' }
         ];
@@ -576,14 +614,11 @@ function renderTable(screenId, data) {
             { header: 'Fecha', key: 'Fecha', type: 'date' },
             { header: 'Nombre', key: 'Nombre', bold: true },
             { header: 'Residente', key: 'Residente' },
-            { header: 'Ubicación', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` }
+            { header: 'Torre', key: 'Torre' },
+            { header: 'Departamento', key: 'Departamento' }
         ];
     } else {
-        // Default genérico
-        columns = [
-            { header: 'Fecha', key: 'Fecha', type: 'date' },
-            { header: 'Nombre', key: 'Nombre', bold: true }
-        ];
+        columns = [ { header: 'Nombre', key: 'Nombre', bold: true } ];
     }
 
     thead.innerHTML = columns.map(col => `<th style="padding:15px;">${col.header}</th>`).join('') + '<th style="padding:15px; text-align:center;">Acciones</th>';
@@ -591,15 +626,28 @@ function renderTable(screenId, data) {
     tbody.innerHTML = data.map((row, index) => {
         const cells = columns.map(col => {
             let val = '-';
-            if (col.format) val = col.format(row);
-            else if (row[col.key]) val = row[col.key];
+            
+            // Prioridad: 1. Format custom, 2. Key map
+            if (col.format) {
+                val = col.format(row);
+            } else if (col.type === 'image') {
+                // Lógica para detectar foto
+                const imgData = row.FotoBase64 || row.FirmaBase64 || row.Foto;
+                if(imgData) {
+                    val = `<div style="width:30px; height:30px; background:#f1f5f9; border-radius:4px; display:flex; align-items:center; justify-content:center; cursor:pointer;" onclick="showDetails(${index})"><i class="fas fa-image" style="color:#64748b;"></i></div>`;
+                } else {
+                    val = '<span style="color:#cbd5e1; font-size:0.7rem;">Sin foto</span>';
+                }
+            } else if (row[col.key]) {
+                val = row[col.key];
+            }
 
             if (val === undefined || val === null) val = '-';
 
             if (col.type === 'date') val = `<span style="color:#64748b; font-size:0.85rem;">${formatearFecha(val)}</span>`;
             if (col.type === 'status') val = getStatusBadge(val);
             if (col.type === 'bool') val = row.Activo ? '<span style="color:#16a34a; background:#dcfce7; padding:2px 8px; border-radius:10px; font-size:0.75rem; font-weight:600;">Activo</span>' : '<span style="color:#94a3b8; background:#f1f5f9; padding:2px 8px; border-radius:10px; font-size:0.75rem;">Inactivo</span>';
-            if (col.bold) val = `<span style="font-weight:600; color:#334155;">${val}</span>`;
+            if (col.bold && !col.format) val = `<span style="font-weight:600; color:#334155;">${val}</span>`;
 
             return `<td style="padding:15px; border-bottom:1px solid #f8fafc;">${val}</td>`;
         }).join('');
@@ -614,12 +662,12 @@ function renderTable(screenId, data) {
 }
 
 function getStatusBadge(status) {
-    if (!status) return '-';
+    if (!status || status === '-') return '-';
     const s = status.toString().toLowerCase();
     let color = '#3b82f6'; let bg = '#eff6ff'; 
     if (s.includes('entrada') || s.includes('aceptado') || s.includes('autorizado') || s.includes('entregado')) { color = '#16a34a'; bg = '#dcfce7'; }
     if (s.includes('salida') || s.includes('rechazado') || s.includes('denegado')) { color = '#dc2626'; bg = '#fee2e2'; }
-    if (s.includes('pendiente') || s.includes('recibido')) { color = '#d97706'; bg = '#fef3c7'; }
+    if (s.includes('pendiente') || s.includes('recibido') || s.includes('nuevo')) { color = '#d97706'; bg = '#fef3c7'; }
     return `<span style="color:${color}; background:${bg}; padding:4px 10px; border-radius:12px; font-size:0.75rem; font-weight:600; text-transform:capitalize;">${status}</span>`;
 }
 
@@ -671,7 +719,8 @@ function showDetails(index) {
     if(!item) return;
     
     let listHtml = '';
-    const ignore = ['odata.type', 'ID', 'Id', 'Foto', 'FotoBase64', 'FirmaBase64', 'ItemInternalId'];
+    // Ignoramos claves técnicas o imágenes para que no salgan como texto
+    const ignore = ['odata.type', 'ID', 'Id', 'ItemInternalId', 'Foto', 'FotoBase64', 'FirmaBase64', '_origen'];
 
     for (const [key, value] of Object.entries(item)) {
         if (!ignore.includes(key) && value) {
@@ -689,14 +738,33 @@ function showDetails(index) {
         }
     }
 
-    if(item.FotoBase64 || item.Foto) {
-        const imgSrc = item.FotoBase64 ? `data:image/png;base64,${item.FotoBase64}` : item.Foto;
-        listHtml += `
+    // Lógica robusta para mostrar imágenes (Prioridad Base64, luego URL)
+    let imagesHtml = '';
+    
+    // Foto Base64
+    if(item.FotoBase64) {
+        imagesHtml += `
             <div style="margin-top:15px; text-align:center;">
-                 <span style="display:block; color:#64748b; font-size:0.9rem; margin-bottom:5px;">Evidencia</span>
-                 <img src="${imgSrc}" style="max-width:100%; border-radius:8px; border:1px solid #e2e8f0;">
-            </div>
-        `;
+                 <span style="display:block; color:#64748b; font-size:0.9rem; margin-bottom:5px;">Evidencia (Foto)</span>
+                 <img src="data:image/png;base64,${item.FotoBase64}" style="max-width:100%; border-radius:8px; border:1px solid #e2e8f0;">
+            </div>`;
+    } 
+    // Firma Base64
+    if (item.FirmaBase64) {
+        imagesHtml += `
+            <div style="margin-top:15px; text-align:center;">
+                 <span style="display:block; color:#64748b; font-size:0.9rem; margin-bottom:5px;">Firma</span>
+                 <img src="data:image/png;base64,${item.FirmaBase64}" style="max-width:100%; border-radius:8px; border:1px solid #e2e8f0;">
+            </div>`;
+    }
+    // Foto URL (como fallback o si viene directo de SP sin base64)
+    if (item.Foto && !item.FotoBase64) {
+         imagesHtml += `
+            <div style="margin-top:15px; text-align:center;">
+                 <span style="display:block; color:#64748b; font-size:0.9rem; margin-bottom:5px;">Evidencia (URL)</span>
+                 <img src="${item.Foto}" alt="Imagen no disponible" style="max-width:100%; border-radius:8px; border:1px solid #e2e8f0;" onerror="this.style.display='none'">
+                 <p style="font-size:0.7rem; color:#94a3b8;">Si no ve la imagen, puede requerir inicio de sesión en SharePoint.</p>
+            </div>`;
     }
 
     const modalHtml = `
@@ -706,7 +774,10 @@ function showDetails(index) {
                     <h3 style="margin:0; color:#1e293b;">Detalles del Registro</h3>
                     <button onclick="closeModal()" style="background:none; border:none; font-size:1.5rem; color:#94a3b8; cursor:pointer;">&times;</button>
                 </div>
-                <div style="padding:20px; overflow-y:auto;">${listHtml}</div>
+                <div style="padding:20px; overflow-y:auto;">
+                    ${listHtml}
+                    ${imagesHtml}
+                </div>
                 <div style="padding:20px; border-top:1px solid #f1f5f9; text-align:right;">
                     <button onclick="closeModal()" style="padding:10px 20px; background:#1e293b; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Cerrar</button>
                 </div>
