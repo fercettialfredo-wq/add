@@ -57,7 +57,9 @@ const LAYOUT = (content) => `
                 ${renderMenuItem('LOG_VISITAS', 'icons/visita.svg', 'Visitas')}
                 ${renderMenuItem('LOG_PROVEEDORES', 'icons/servicio.svg', 'Proveedores')}
                 ${renderMenuItem('LOG_PAQUETERIA', 'icons/incidencias.svg', 'Paquetería')}
-                ${renderMenuItem('LOG_INTERNO', 'icons/residente.svg', 'Personal')} <div style="padding:15px 25px 5px; font-size:0.7rem; color:#64748b; font-weight:bold; text-transform:uppercase;">Digital</div>
+                ${renderMenuItem('LOG_INTERNO', 'icons/residente.svg', 'Personal')} 
+                
+                <div style="padding:15px 25px 5px; font-size:0.7rem; color:#64748b; font-weight:bold; text-transform:uppercase;">Digital</div>
                 ${renderMenuItem('LOG_PERSONAL', 'icons/servicio.svg', 'Personal Servicio')}
                 ${renderMenuItem('LOG_QR_RES', 'icons/qr.svg', 'QR Residentes')}
                 ${renderMenuItem('LOG_QR_VIS', 'icons/qr.svg', 'QR Visitas')}
@@ -329,7 +331,7 @@ function getTitleForScreen(id) {
         'LOG_NIP_PROV': 'Bitácora de Accesos NIP',
         'LOG_PAQUETERIA': 'Gestión de Paquetería',
         'LOG_PERSONAL': 'Personal de Servicio',
-        'LOG_INTERNO': 'Directorio de Personal', // CAMBIO DE NOMBRE
+        'LOG_INTERNO': 'Directorio de Personal',
         'LOG_QR_RES': 'Accesos QR (Residentes)',
         'LOG_QR_VIS': 'Accesos QR (Visitas)',
         'LOG_EVENTOS': 'Eventos y Amenidades'
@@ -469,8 +471,8 @@ async function loadTableData(screenId) {
         'LOG_VISITAS': 'VISITA',
         'LOG_PROVEEDORES': 'PROVEEDOR',
         'LOG_NIP_PROV': 'NIP_PROVEEDOR',
-        'LOG_PERSONAL': 'PERSONAL_INTERNO',      // INTERCAMBIADO: UI "Personal Servicio" pide al Backend "PERSONAL_INTERNO"
-        'LOG_INTERNO': 'PERSONAL_DE_SERVICIO',   // INTERCAMBIADO: UI "Personal" pide al Backend "PERSONAL_DE_SERVICIO" (que es Personal Aviso)
+        'LOG_PERSONAL': 'PERSONAL_INTERNO',      // CAMBIO: Personal Servicio pide PERSONAL_INTERNO (que tiene TipoMarca)
+        'LOG_INTERNO': 'PERSONAL_DE_SERVICIO',   // CAMBIO: Personal pide PERSONAL_DE_SERVICIO (Aviso)
         'LOG_QR_RES': 'QR_RESIDENTE',
         'LOG_QR_VIS': 'QR_VISITA',
         'LOG_EVENTOS': 'EVENTO'
@@ -566,18 +568,19 @@ function renderTable(screenId, data) {
             { header: 'Foto/Firma', type: 'image' } // Nueva columna de imagen
         ];
     } else if (screenId === 'LOG_PERSONAL') {
-        // Ahora llama a PERSONAL_INTERNO (que trae Foto)
+        // PERSONAL DE SERVICIO (Usa backend PERSONAL_INTERNO que tiene TipoMarca)
         columns = [
             { header: 'Fecha', key: 'Fecha', type: 'date' },
             { header: 'Nombre', key: 'Nombre', bold: true },
             { header: 'Cargo', key: 'Cargo' },
+            { header: 'Tipo Marca', key: 'TipoMarca' }, // AGREGADO
             { header: 'Responsable', key: 'Residente' },
             { header: 'Torre', key: 'Torre' },
             { header: 'Departamento', key: 'Departamento' },
             { header: 'Foto', type: 'image' }
         ];
     } else if (screenId === 'LOG_INTERNO') {
-         // Ahora se llama "Personal" y llama a PERSONAL_DE_SERVICIO (que trae Estatus)
+         // PERSONAL (Usa backend PERSONAL_DE_SERVICIO)
          columns = [
             { header: 'Fecha', key: 'Fecha', type: 'date' },
             { header: 'Nombre', key: 'Nombre', bold: true },
