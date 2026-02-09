@@ -514,17 +514,15 @@ function renderTable(screenId, data) {
     if (screenId === 'LOG_RESIDENTES') {
         columns = [
             { header: 'Nombre', key: 'Nombre', bold: true },
-            { header: 'Torre', key: 'Torre' },
-            { header: 'Departamento', key: 'Departamento' },
-            { header: 'Teléfono', key: 'Telefono' }
+            { header: 'Ubicación', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` },
+            { header: 'Contacto', key: 'Telefono' }
         ];
     } else if (screenId === 'LOG_VISITAS') {
         columns = [
             { header: 'Fecha', key: 'Fecha', type: 'date' },
             { header: 'Visitante', key: 'Nombre', bold: true },
             { header: 'Residente', key: 'Residente' },
-            { header: 'Torre', key: 'Torre' },
-            { header: 'Departamento', key: 'Departamento' },
+            { header: 'Destino', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` },
             { header: 'Motivo', key: 'Motivo' },
             { header: 'Placa', key: 'Placa' },
             { header: 'Estatus', key: 'Estatus', type: 'status' }
@@ -535,8 +533,7 @@ function renderTable(screenId, data) {
             { header: 'Empresa', key: 'Empresa', bold: true },
             { header: 'Personal', key: 'Nombre' },
             { header: 'Asunto', key: 'Asunto' },
-            { header: 'Torre', key: 'Torre' },
-            { header: 'Departamento', key: 'Departamento' },
+            { header: 'Destino', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` },
             { header: 'Residente', key: 'Residente' },
             { header: 'Estatus', key: 'Estatus', type: 'status' }
         ];
@@ -749,7 +746,7 @@ function showDetails(index) {
                  <img src="data:image/png;base64,${item.FotoBase64}" style="max-width:100%; border-radius:8px; border:1px solid #e2e8f0;">
             </div>`;
     } 
-    // Firma Base64
+    // Firma Base64 (Tratada igual que la foto)
     if (item.FirmaBase64) {
         imagesHtml += `
             <div style="margin-top:15px; text-align:center;">
@@ -761,9 +758,8 @@ function showDetails(index) {
     if (item.Foto && !item.FotoBase64) {
          imagesHtml += `
             <div style="margin-top:15px; text-align:center;">
-                 <span style="display:block; color:#64748b; font-size:0.9rem; margin-bottom:5px;">Evidencia (URL)</span>
-                 <img src="${item.Foto}" alt="Imagen no disponible" style="max-width:100%; border-radius:8px; border:1px solid #e2e8f0;" onerror="this.style.display='none'">
-                 <p style="font-size:0.7rem; color:#94a3b8;">Si no ve la imagen, puede requerir inicio de sesión en SharePoint.</p>
+                 <span style="display:block; color:#64748b; font-size:0.9rem; margin-bottom:5px;">Evidencia</span>
+                 <img src="${item.Foto}" alt="Imagen pública" style="max-width:100%; border-radius:8px; border:1px solid #e2e8f0;" onerror="this.style.display='none'">
             </div>`;
     }
 
