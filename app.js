@@ -514,15 +514,17 @@ function renderTable(screenId, data) {
     if (screenId === 'LOG_RESIDENTES') {
         columns = [
             { header: 'Nombre', key: 'Nombre', bold: true },
-            { header: 'Ubicación', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` },
-            { header: 'Contacto', key: 'Telefono' }
+            { header: 'Torre', key: 'Torre' },
+            { header: 'Departamento', key: 'Departamento' },
+            { header: 'Teléfono', key: 'Telefono' }
         ];
     } else if (screenId === 'LOG_VISITAS') {
         columns = [
             { header: 'Fecha', key: 'Fecha', type: 'date' },
             { header: 'Visitante', key: 'Nombre', bold: true },
             { header: 'Residente', key: 'Residente' },
-            { header: 'Destino', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` },
+            { header: 'Torre', key: 'Torre' },
+            { header: 'Departamento', key: 'Departamento' },
             { header: 'Motivo', key: 'Motivo' },
             { header: 'Placa', key: 'Placa' },
             { header: 'Estatus', key: 'Estatus', type: 'status' }
@@ -735,33 +737,28 @@ function showDetails(index) {
         }
     }
 
-    // Lógica robusta para mostrar imágenes (Prioridad Base64, luego URL)
+    // Lógica robusta para mostrar imágenes
     let imagesHtml = '';
     
-    // Foto Base64
-    if(item.FotoBase64) {
-        imagesHtml += `
+    const renderImg = (label, data) => {
+        if(!data) return '';
+        // Si ya trae prefijo data:image, lo usamos directo. Si es http, directo. Si no, le pegamos el prefijo.
+        let src = data;
+        if (!data.startsWith('http') && !data.startsWith('data:image')) {
+            src = `data:image/png;base64,${data}`;
+        }
+        
+        return `
             <div style="margin-top:15px; text-align:center;">
-                 <span style="display:block; color:#64748b; font-size:0.9rem; margin-bottom:5px;">Evidencia (Foto)</span>
-                 <img src="data:image/png;base64,${item.FotoBase64}" style="max-width:100%; border-radius:8px; border:1px solid #e2e8f0;">
+                 <span style="display:block; color:#64748b; font-size:0.9rem; margin-bottom:5px;">${label}</span>
+                 <img src="${src}" style="max-width:100%; border-radius:8px; border:1px solid #e2e8f0;">
             </div>`;
-    } 
-    // Firma Base64 (Tratada igual que la foto)
-    if (item.FirmaBase64) {
-        imagesHtml += `
-            <div style="margin-top:15px; text-align:center;">
-                 <span style="display:block; color:#64748b; font-size:0.9rem; margin-bottom:5px;">Firma</span>
-                 <img src="data:image/png;base64,${item.FirmaBase64}" style="max-width:100%; border-radius:8px; border:1px solid #e2e8f0;">
-            </div>`;
-    }
-    // Foto URL (como fallback o si viene directo de SP sin base64)
-    if (item.Foto && !item.FotoBase64) {
-         imagesHtml += `
-            <div style="margin-top:15px; text-align:center;">
-                 <span style="display:block; color:#64748b; font-size:0.9rem; margin-bottom:5px;">Evidencia</span>
-                 <img src="${item.Foto}" alt="Imagen pública" style="max-width:100%; border-radius:8px; border:1px solid #e2e8f0;" onerror="this.style.display='none'">
-            </div>`;
-    }
+    };
+
+    if (item.FotoBase64) imagesHtml += renderImg('Evidencia (Foto)', item.FotoBase64);
+    if (item.FirmaBase64) imagesHtml += renderImg('Firma', item.FirmaBase64);
+    // Solo mostrar Foto URL si no hay Base64, para evitar duplicados
+    if (item.Foto && !item.FotoBase64) imagesHtml += renderImg('Evidencia', item.Foto);
 
     const modalHtml = `
         <div id="modal-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.6); display:flex; justify-content:center; align-items:center; z-index:9999; backdrop-filter:blur(2px);">
