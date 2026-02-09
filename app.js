@@ -6,8 +6,12 @@
    1. CONFIGURACIÓN Y ESTADO GLOBAL
    ========================================= */
 const CONFIG = {
-    // URL de tu Proxy Admin
-    API_PROXY_URL: 'https://proxyadmin-cyh0etgyf5c9hch6.mexicocentral-01.azurewebsites.net/api/ravens-admin-proxy'
+    // URL de tu Proxy Admin (Azure Function)
+    API_PROXY_URL: 'https://proxyadmin-cyh0etgyf5c9hch6.mexicocentral-01.azurewebsites.net/api/ravens-admin-proxy',
+    
+    // CLAVE MAESTRA PARA EL LOGIN
+    // Esta clave le dice al Proxy que busque la variable: URL_ADMIN_AUTH_REQ
+    LOGIN_ROUTING_KEY: 'AUTH_REQ' 
 };
 
 const STATE = {
@@ -225,7 +229,8 @@ function renderCard(title, valueHtml, iconPath, color, action) {
 
 async function callBackend(action, extraData = {}) {
     // Si no hay sesión y no es login, desconectar.
-    if (!STATE.session.condominioId && action !== 'login') {
+    // NOTA: Si extraData trae 'condominio', es un override (ej. Login)
+    if (!STATE.session.condominioId && !extraData.condominio && action !== 'login') {
         doLogout();
         return { success: false, message: "Sesión expirada" };
     }
@@ -233,9 +238,8 @@ async function callBackend(action, extraData = {}) {
     try {
         const payload = { 
             action, 
-            // AL HACER LOGIN: Enviamos "AUTH_REQ" como comodín para pasar el Proxy.
-            // La Logic App decidirá qué condominio responder.
-            condominio: STATE.session.condominioId || (action === 'login' ? 'AUTH_REQ' : null), 
+            // PRIORIDAD: Si extraData tiene condominio (login), usalo. Si no, usa el de la sesión.
+            condominio: extraData.condominio || STATE.session.condominioId, 
             usuario: STATE.session.usuario || "admin_web", 
             ...extraData 
         };
@@ -266,12 +270,19 @@ async function doLogin() {
     errorMsg.style.display = 'none';
     btn.innerText = "Verificando..."; btn.disabled = true; btn.style.opacity = "0.7";
 
-    const res = await callBackend('login', { username: user, password: pass });
+    // AQUI ESTA EL CAMBIO: Forzamos el uso de la Logic App de Login Global
+    const res = await callBackend('login', { 
+        username: user, 
+        password: pass,
+        condominio: CONFIG.LOGIN_ROUTING_KEY // Enviamos 'AUTH_REQ'
+    });
 
     if (res && res.success) {
-        // AQUÍ ESTÁ LA CLAVE: La Logic App nos dice qué condominio es
+        // La Logic App de Login nos devuelve el condominio REAL (ej. TORRE_A)
         const condId = res.condominioId || res.condominio || "DESCONOCIDO";
         
+        // Guardamos el condominio real en la sesión. 
+        // A partir de aquí, callBackend usará este ID.
         STATE.session = { isLoggedIn: true, condominioId: condId, usuario: user };
         localStorage.setItem('ravensAdmin', JSON.stringify(STATE.session));
         navigate('DASHBOARD');
