@@ -573,7 +573,7 @@ function renderTable(screenId, data) {
             { header: 'Fecha', key: 'Fecha', type: 'date' },
             { header: 'Nombre', key: 'Nombre', bold: true },
             { header: 'Cargo', key: 'Cargo' },
-            { header: 'Tipo Marca', key: 'TipoMarca' }, // AGREGADO
+            { header: 'Tipo Marca', key: 'TipoMarca', type: 'status' }, // CAMBIO: AHORA USA TYPE: STATUS PARA COLORES
             { header: 'Responsable', key: 'Residente' },
             { header: 'Torre', key: 'Torre' },
             { header: 'Departamento', key: 'Departamento' },
