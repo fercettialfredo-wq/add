@@ -555,13 +555,26 @@ function renderTable(screenId, data) {
             { header: 'Ubicación', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` },
             { header: 'Estatus', key: 'Estatus', type: 'status' }
         ];
-    } else {
-        // Default para QR
+    } else if (screenId === 'LOG_QR_VIS') {
         columns = [
             { header: 'Fecha', key: 'Fecha', type: 'date' },
             { header: 'Nombre', key: 'Nombre', bold: true },
             { header: 'Residente', key: 'Residente' },
-            { header: 'Motivo/Relación', format: (row) => row.Relacion || row.Motivo || row['Relación '] || '-' }
+            { header: 'Motivo', key: 'Motivo' },
+            { header: 'Estatus', key: 'Estatus', type: 'status' } // Se agregó Estatus
+        ];
+    } else if (screenId === 'LOG_QR_RES') {
+        columns = [
+            { header: 'Fecha', key: 'Fecha', type: 'date' },
+            { header: 'Nombre', key: 'Nombre', bold: true },
+            { header: 'Ubicación', format: (row) => `${row.Torre || ''} ${row.Departamento || ''}` }
+            // Se eliminó Motivo/Relación
+        ];
+    } else {
+        // Default genérico
+        columns = [
+            { header: 'Fecha', key: 'Fecha', type: 'date' },
+            { header: 'Nombre', key: 'Nombre', bold: true }
         ];
     }
 
