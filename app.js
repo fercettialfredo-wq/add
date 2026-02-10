@@ -88,7 +88,7 @@ const LAYOUT = (content) => `
                         </div>
                     </div>
                     <div style="width:42px; height:42px; background:#f1f5f9; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#64748b; border:2px solid #e2e8f0;">
-                        <img src="icons/logo.png" style="width:25px; opacity:0.7;">
+                        <i class="fas fa-user" style="font-size:1.2rem;"></i>
                     </div>
                 </div>
             </header>
@@ -148,7 +148,7 @@ const SCREENS = {
     'DASHBOARD': `
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:20px; margin-bottom:30px;">
             ${renderCard('Accesos Hoy', '<span id="stat-access"><i class="fas fa-spinner fa-spin"></i></span>', 'icons/visita.svg', '#3b82f6', "navigate('LOG_VISITAS')")}
-            ${renderCard('Paquetes', '<span id="stat-packages"><i class="fas fa-spinner fa-spin"></i></span>', 'icons/incidencias.svg', '#f59e0b', "navigate('LOG_PAQUETERIA')")}
+            ${renderCard('Paquetes', '<span id="stat-packages"><i class="fas fa-spinner fa-spin"></i></span>', 'icons/paquete1.svg', '#f59e0b', "navigate('LOG_PAQUETERIA')")}
             ${renderCard('Residentes', '<span id="stat-residents">--</span>', 'icons/residente.svg', '#10b981', "navigate('LOG_RESIDENTES')")}
             ${renderCard('Eventos', '0', 'icons/evento.svg', '#ef4444', "navigate('LOG_EVENTOS')")}
         </div>
@@ -701,7 +701,7 @@ function showAddUserForm() {
                     </div>
                     <div>
                         <label style="display:block; font-size:0.85rem; font-weight:600; color:#475569; margin-bottom:5px;">Teléfono</label>
-                        <input type="text" id="new-phone" placeholder="+52..." style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; outline:none; box-sizing:border-box;">
+                        <input type="text" id="new-phone" placeholder="" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; outline:none; box-sizing:border-box;">
                     </div>
                 </div>
                 <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:25px;">
