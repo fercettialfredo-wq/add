@@ -57,10 +57,10 @@ const LAYOUT = (content) => `
                 ${renderMenuItem('LOG_VISITAS', 'icons/visita.svg', 'Visitas')}
                 ${renderMenuItem('LOG_PROVEEDORES', 'icons/pizza-deliver.svg', 'Proveedores')}
                 ${renderMenuItem('LOG_PAQUETERIA', 'icons/paquete1.svg', 'Paquetería')}
-                ${renderMenuItem('LOG_INTERNO', 'icons/servicio.svg', 'Personal')} 
+                ${renderMenuItem('LOG_INTERNO', 'icons/teamworkk.svg', 'Personal')} 
                 
                 <div style="padding:15px 25px 5px; font-size:0.7rem; color:#64748b; font-weight:bold; text-transform:uppercase;">Digital</div>
-                ${renderMenuItem('LOG_PERSONAL', 'icons/teamworkk.svg', 'Personal Servicio')}
+                ${renderMenuItem('LOG_PERSONAL', 'icons/servicio.svg', 'Personal Servicio')}
                 ${renderMenuItem('LOG_QR_RES', 'icons/qr-code-svgrepo-com (4).svg', 'QR Residentes')}
                 ${renderMenuItem('LOG_QR_VIS', 'icons/qr-code-svgrepo-com (3).svg', 'QR Visitas')}
                 ${renderMenuItem('LOG_EVENTOS', 'icons/evento.svg', 'Eventos')}
