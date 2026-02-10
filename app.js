@@ -48,23 +48,23 @@ const LAYOUT = (content) => `
             </div>
             
             <nav style="flex:1; padding:20px 0; overflow-y:auto;">
-                ${renderMenuItem('DASHBOARD', 'icons/incidencias.svg', 'Dashboard')} 
+                ${renderMenuItem('DASHBOARD', 'icons/report-svgrepo-com.svg', 'Dashboard')} 
                 
                 <div style="padding:15px 25px 5px; font-size:0.7rem; color:#64748b; font-weight:bold; text-transform:uppercase;">Gestión</div>
                 ${renderMenuItem('LOG_RESIDENTES', 'icons/residente.svg', 'Residentes')}
                 
                 <div style="padding:15px 25px 5px; font-size:0.7rem; color:#64748b; font-weight:bold; text-transform:uppercase;">Bitácoras</div>
                 ${renderMenuItem('LOG_VISITAS', 'icons/visita.svg', 'Visitas')}
-                ${renderMenuItem('LOG_PROVEEDORES', 'icons/servicio.svg', 'Proveedores')}
+                ${renderMenuItem('LOG_PROVEEDORES', 'icons/pizza-deliver.svg', 'Proveedores')}
                 ${renderMenuItem('LOG_PAQUETERIA', 'icons/incidencias.svg', 'Paquetería')}
-                ${renderMenuItem('LOG_INTERNO', 'icons/residente.svg', 'Personal')} 
+                ${renderMenuItem('LOG_INTERNO', 'icons/servicio.svg', 'Personal')} 
                 
                 <div style="padding:15px 25px 5px; font-size:0.7rem; color:#64748b; font-weight:bold; text-transform:uppercase;">Digital</div>
-                ${renderMenuItem('LOG_PERSONAL', 'icons/servicio.svg', 'Personal Servicio')}
+                ${renderMenuItem('LOG_PERSONAL', 'icons/teamwork.svg', 'Personal Servicio')}
                 ${renderMenuItem('LOG_QR_RES', 'icons/qr.svg', 'QR Residentes')}
                 ${renderMenuItem('LOG_QR_VIS', 'icons/qr.svg', 'QR Visitas')}
                 ${renderMenuItem('LOG_EVENTOS', 'icons/evento.svg', 'Eventos')}
-                ${renderMenuItem('LOG_NIP_PROV', 'icons/qr.svg', 'Accesos NIP (Prov)')}
+                ${renderMenuItem('LOG_NIP_PROV', 'icons/delivery-bike.svg', 'Accesos NIP (Prov)')}
             </nav>
 
             <div style="padding:20px; border-top:1px solid #334155;">
