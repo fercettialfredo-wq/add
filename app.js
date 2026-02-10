@@ -56,15 +56,15 @@ const LAYOUT = (content) => `
                 <div style="padding:15px 25px 5px; font-size:0.7rem; color:#64748b; font-weight:bold; text-transform:uppercase;">Bitácoras</div>
                 ${renderMenuItem('LOG_VISITAS', 'icons/visita.svg', 'Visitas')}
                 ${renderMenuItem('LOG_PROVEEDORES', 'icons/pizza-deliver.svg', 'Proveedores')}
-                ${renderMenuItem('LOG_PAQUETERIA', 'icons/incidencias.svg', 'Paquetería')}
+                ${renderMenuItem('LOG_PAQUETERIA', 'icons/paquete1.svg', 'Paquetería')}
                 ${renderMenuItem('LOG_INTERNO', 'icons/servicio.svg', 'Personal')} 
                 
                 <div style="padding:15px 25px 5px; font-size:0.7rem; color:#64748b; font-weight:bold; text-transform:uppercase;">Digital</div>
-                ${renderMenuItem('LOG_PERSONAL', 'icons/teamwork.svg', 'Personal Servicio')}
-                ${renderMenuItem('LOG_QR_RES', 'icons/qr.svg', 'QR Residentes')}
-                ${renderMenuItem('LOG_QR_VIS', 'icons/qr.svg', 'QR Visitas')}
+                ${renderMenuItem('LOG_PERSONAL', 'icons/teamworkk.svg', 'Personal Servicio')}
+                ${renderMenuItem('LOG_QR_RES', 'icons/qr-code-svgrepo-com (4).svg', 'QR Residentes')}
+                ${renderMenuItem('LOG_QR_VIS', 'icons/qr-code-svgrepo-com (3).svg', 'QR Visitas')}
                 ${renderMenuItem('LOG_EVENTOS', 'icons/evento.svg', 'Eventos')}
-                ${renderMenuItem('LOG_NIP_PROV', 'icons/delivery-bike.svg', 'Accesos NIP (Prov)')}
+                ${renderMenuItem('LOG_NIP_PROV', 'icons/delivery-bikke.svg', 'Accesos NIP (Prov)')}
             </nav>
 
             <div style="padding:20px; border-top:1px solid #334155;">
