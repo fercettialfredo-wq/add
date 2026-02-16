@@ -18,8 +18,6 @@ body {
 /* =========================================
    PANTALLA DE LOGIN
    ========================================= */
-/* Nota: Los estilos del contenedor del login están inline en el JS para asegurar el centrado,
-   aquí definimos los inputs y botones para que se vean bonitos */
 
 input[type="text"],
 input[type="password"],
@@ -82,7 +80,6 @@ button:active {
 /* =========================================
    TARJETAS DASHBOARD (CARDS)
    ========================================= */
-/* Los estilos base están en el JS, aquí añadimos efectos hover */
 .dashboard-card {
     transition: transform 0.2s, box-shadow 0.2s;
 }
@@ -105,7 +102,7 @@ button:active {
 table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 600px; /* Evita que se rompa en pantallas muy pequeñas */
+    min-width: 600px; 
 }
 
 thead tr {
@@ -153,7 +150,6 @@ td {
 /* =========================================
    MODALES Y UTILIDADES
    ========================================= */
-/* El modal se genera dinámicamente en JS, pero usamos esto para inputs dentro de modales si fuera necesario */
 .modal-overlay {
     backdrop-filter: blur(4px);
 }
@@ -181,7 +177,7 @@ td {
         padding: 10px !important;
     }
     aside .logo-section, aside button {
-        display: none; /* Ocultar logout y logo en móvil para simplificar */
+        display: none;
     }
     main {
         height: calc(100vh - 60px);
