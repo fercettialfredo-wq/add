@@ -344,7 +344,6 @@ function getTitleForScreen(id) {
    ========================================= */
 
 async function loadDashboardStats() {
-    // Para el dashboard usamos solo recepción para contar paquetes
     const [resVisitas, resPaquetes] = await Promise.all([
         callBackend('get_history', { tipo_lista: 'VISITA' }),
         callBackend('get_history', { tipo_lista: 'PAQUETERIA_RECEPCION' })
@@ -433,12 +432,10 @@ function renderChart(data) {
    ========================================= */
 
 async function loadTableData(screenId) {
-    // Si es PAQUETERIA, necesitamos unir dos fuentes de datos
     if (screenId === 'LOG_PAQUETERIA') {
         const tbody = document.getElementById('table-body');
         if(tbody) tbody.innerHTML = '<tr><td colspan="10" style="padding:40px; text-align:center; color:#64748b;"><i class="fas fa-spinner fa-spin"></i> Cargando paquetería...</td></tr>';
 
-        // Hacemos las dos llamadas en paralelo
         const [resRec, resEnt] = await Promise.all([
             callBackend('get_history', { tipo_lista: 'PAQUETERIA_RECEPCION' }),
             callBackend('get_history', { tipo_lista: 'PAQUETERIA_ENTREGA' })
@@ -453,7 +450,6 @@ async function loadTableData(screenId) {
 
         let merged = [...listRec, ...listEnt];
         
-        // Ordenar por fecha descendente
         merged.sort((a, b) => {
             const dateA = new Date(a.Fecha || 0);
             const dateB = new Date(b.Fecha || 0);
@@ -465,14 +461,13 @@ async function loadTableData(screenId) {
         return;
     }
 
-    // Lógica normal para las demás listas
     const typeMap = {
         'LOG_RESIDENTES': 'RESIDENTE',
         'LOG_VISITAS': 'VISITA',
         'LOG_PROVEEDORES': 'PROVEEDOR',
         'LOG_NIP_PROV': 'NIP_PROVEEDOR',
-        'LOG_PERSONAL': 'PERSONAL_INTERNO',      // CAMBIO: Personal Servicio pide PERSONAL_INTERNO (que tiene TipoMarca)
-        'LOG_INTERNO': 'PERSONAL_DE_SERVICIO',   // CAMBIO: Personal pide PERSONAL_DE_SERVICIO (Aviso)
+        'LOG_PERSONAL': 'PERSONAL_INTERNO',      
+        'LOG_INTERNO': 'PERSONAL_DE_SERVICIO', 
         'LOG_QR_RES': 'QR_RESIDENTE',
         'LOG_QR_VIS': 'QR_VISITA',
         'LOG_EVENTOS': 'EVENTO'
@@ -485,7 +480,6 @@ async function loadTableData(screenId) {
     let data = (res && res.data) ? res.data : [];
 
     // === FILTRADO ===
-    // Solo para NIP, QR Visita y Eventos
     const tabsToFilter = ['LOG_NIP_PROV', 'LOG_QR_VIS', 'LOG_EVENTOS'];
     
     if (tabsToFilter.includes(screenId) && data.length > 0) {
@@ -565,10 +559,10 @@ function renderTable(screenId, data) {
             { header: 'Residente', key: 'Residente' },
             { header: 'Torre', key: 'Torre' },
             { header: 'Depto', key: 'Departamento' },
-            { header: 'Foto/Firma', type: 'image' } // Nueva columna de imagen
+            { header: 'Foto/Firma', type: 'image' } 
         ];
     } else if (screenId === 'LOG_PERSONAL') {
-        // PERSONAL DE SERVICIO (Usa backend PERSONAL_INTERNO que tiene TipoMarca)
+        // PERSONAL DE SERVICIO 
         columns = [
             { header: 'Fecha', key: 'Fecha', type: 'date' },
             { header: 'Nombre', key: 'Nombre', bold: true },
@@ -580,7 +574,7 @@ function renderTable(screenId, data) {
             { header: 'Foto', type: 'image' }
         ];
     } else if (screenId === 'LOG_INTERNO') {
-         // PERSONAL (Usa backend PERSONAL_DE_SERVICIO)
+         // PERSONAL
          columns = [
             { header: 'Fecha', key: 'Fecha', type: 'date' },
             { header: 'Nombre', key: 'Nombre', bold: true },
@@ -627,11 +621,9 @@ function renderTable(screenId, data) {
         const cells = columns.map(col => {
             let val = '-';
             
-            // Prioridad: 1. Format custom, 2. Key map
             if (col.format) {
                 val = col.format(row);
             } else if (col.type === 'image') {
-                // Lógica mejorada para detectar foto o firma (URL o Base64)
                 const imgData = row.FotoBase64 || row.FirmaBase64 || row.Foto || row.Firma;
                 
                 if(imgData) {
@@ -720,7 +712,6 @@ function showDetails(index) {
     if(!item) return;
     
     let listHtml = '';
-    // AGREGAMOS 'Firma' y 'Foto' al ignore para que no salgan como texto (URL)
     const ignore = ['odata.type', 'ID', 'Id', 'ItemInternalId', 'Foto', 'FotoBase64', 'FirmaBase64', 'Firma', '_origen'];
 
     for (const [key, value] of Object.entries(item)) {
@@ -746,8 +737,6 @@ function showDetails(index) {
         if(!data) return '';
         
         let src = data;
-        // Si NO contiene 'http' Y NO contiene 'data:image', asumimos que es Base64 puro y le pegamos el prefijo.
-        // Si ya es URL (http) o ya tiene prefijo data:image, lo dejamos tal cual.
         if (data.indexOf('http') === -1 && data.indexOf('data:image') === -1) {
             src = `data:image/png;base64,${data}`;
         }
@@ -762,7 +751,6 @@ function showDetails(index) {
     if (item.FotoBase64) imagesHtml += renderImg('Foto', item.FotoBase64);
     if (item.FirmaBase64) imagesHtml += renderImg('Firma', item.FirmaBase64);
     
-    // CORRECCIÓN: Mostrar Foto y Firma si vienen como URL (sin Base64)
     if (item.Foto && !item.FotoBase64) imagesHtml += renderImg('Foto', item.Foto);
     if (item.Firma && !item.FirmaBase64) imagesHtml += renderImg('Firma', item.Firma);
 
