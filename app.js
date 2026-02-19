@@ -695,6 +695,16 @@ function showAddUserForm() {
                         <label style="display:block; font-size:0.85rem; font-weight:600; color:#475569; margin-bottom:5px;">Teléfono</label>
                         <input type="text" id="new-phone" placeholder="" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; outline:none; box-sizing:border-box;">
                     </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                        <div>
+                            <label style="display:block; font-size:0.85rem; font-weight:600; color:#475569; margin-bottom:5px;">Usuario (App)</label>
+                            <input type="text" id="new-username" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; outline:none; box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:0.85rem; font-weight:600; color:#475569; margin-bottom:5px;">Contraseña</label>
+                            <input type="password" id="new-password" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; outline:none; box-sizing:border-box;">
+                        </div>
+                    </div>
                 </div>
                 <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:25px;">
                     <button onclick="closeModal()" style="padding:10px 20px; background:white; border:1px solid #e2e8f0; border-radius:6px; cursor:pointer; color:#64748b; font-weight:600;">Cancelar</button>
@@ -785,6 +795,8 @@ async function saveNewUser() {
         torre: document.getElementById('new-torre').value,
         departamento: document.getElementById('new-depto').value,
         telefono: document.getElementById('new-phone').value,
+        usuario: document.getElementById('new-username').value,
+        contrasena: document.getElementById('new-password').value,
         activo: true
     };
 
