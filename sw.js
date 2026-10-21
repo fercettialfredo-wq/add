@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ravens-v3';
+const CACHE_NAME = 'ravens-v4';
 const assets = [
   './',
   './index.html',
