@@ -83,8 +83,8 @@ const LAYOUT = (content) => `
                 <div style="display:flex; align-items:center; gap:15px;">
                     <div style="text-align:right;">
                         <div style="font-weight:700; font-size:0.9rem; color:#1e293b;">Admin</div>
-                        <div style="font-size:0.75rem; color:#3b82f6; font-weight:600; background:#eff6ff; padding:2px 8px; border-radius:10px; display:inline-block;">
-                            ${STATE.session.condominioId || 'Sin Conexión'}
+                        <div style="font-size:0.75rem; color:#10b981; font-weight:600; background:#dcfce7; padding:2px 8px; border-radius:10px; display:inline-block;">
+                            Activo
                         </div>
                     </div>
                     <div style="width:42px; height:42px; background:#f1f5f9; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#64748b; border:2px solid #e2e8f0;">
@@ -197,8 +197,8 @@ const SCREENS = {
                     </tbody>
                 </table>
             </div>
-            <div style="padding:15px 20px; border-top:1px solid #f1f5f9; color:#94a3b8; font-size:0.8rem; text-align:right;">
-                Mostrando últimos 50 registros
+            <div id="table-footer-text" style="padding:15px 20px; border-top:1px solid #f1f5f9; color:#94a3b8; font-size:0.8rem; text-align:right;">
+                Cargando datos...
             </div>
         </div>
     `
@@ -497,9 +497,11 @@ async function loadTableData(screenId) {
 function renderTable(screenId, data) {
     const thead = document.getElementById('table-headers');
     const tbody = document.getElementById('table-body');
+    const footer = document.getElementById('table-footer-text');
     
     if(!data || data.length === 0) {
         tbody.innerHTML = '<tr><td colspan="10" style="padding:40px; text-align:center; color:#94a3b8;">No se encontraron registros.</td></tr>';
+        if (footer) footer.innerText = '0 registros encontrados';
         return;
     }
 
@@ -542,7 +544,6 @@ function renderTable(screenId, data) {
             { header: 'Estatus', key: 'Estatus', type: 'status' }
         ];
     } else if (screenId === 'LOG_PAQUETERIA') {
-        // Lógica especial para unir las columnas de las dos fuentes
         columns = [
             { header: 'Fecha', key: 'Fecha', type: 'date' },
             { 
@@ -562,19 +563,17 @@ function renderTable(screenId, data) {
             { header: 'Foto/Firma', type: 'image' } 
         ];
     } else if (screenId === 'LOG_PERSONAL') {
-        // PERSONAL DE SERVICIO 
         columns = [
             { header: 'Fecha', key: 'Fecha', type: 'date' },
             { header: 'Nombre', key: 'Nombre', bold: true },
             { header: 'Cargo', key: 'Cargo' },
-            { header: 'Tipo Marca', key: 'TipoMarca', type: 'status' }, // CAMBIO: AHORA USA TYPE: STATUS PARA COLORES
+            { header: 'Tipo Marca', key: 'TipoMarca', type: 'status' }, 
             { header: 'Responsable', key: 'Residente' },
             { header: 'Torre', key: 'Torre' },
             { header: 'Departamento', key: 'Departamento' },
             { header: 'Foto', type: 'image' }
         ];
     } else if (screenId === 'LOG_INTERNO') {
-         // PERSONAL
          columns = [
             { header: 'Fecha', key: 'Fecha', type: 'date' },
             { header: 'Nombre', key: 'Nombre', bold: true },
@@ -652,6 +651,15 @@ function renderTable(screenId, data) {
 
         return `<tr style="transition:background 0.1s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">${cells}<td style="padding:15px; border-bottom:1px solid #f8fafc; text-align:center;">${actions}</td></tr>`;
     }).join('');
+
+    // === ACTUALIZACIÓN DEL CONTADOR DINÁMICO ===
+    if (footer) {
+        if (screenId === 'LOG_RESIDENTES') {
+            footer.innerText = `Mostrando todos los registros (${data.length})`;
+        } else {
+            footer.innerText = `Mostrando ${data.length} registros`;
+        }
+    }
 }
 
 function getStatusBadge(status) {
