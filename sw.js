@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ravens-v4';
+const CACHE_NAME = 'ravens-v5';
 const assets = [
   './',
   './index.html',
@@ -8,7 +8,7 @@ const assets = [
   './icon-192.png',
   './icon-512.png'
 ];
-const CACHE_NAME = 'ravens-v4';
+const CACHE_NAME = 'ravens-v5';
 const assets = [
   './',
   './index.html',
